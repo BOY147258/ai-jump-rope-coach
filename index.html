@@ -80,44 +80,72 @@
 
             <!-- 2. 测试进行中 -->
             <section id="testing-view" class="view hidden">
-                <div class="test-header">
-                    <div class="test-timer">
-                        <span id="test-timer-display">60</span>
-                        <span class="timer-label">秒</span>
-                    </div>
-                    <div class="test-progress">
-                        <div class="progress-ring">
-                            <svg viewBox="0 0 100 100">
-                                <circle cx="50" cy="50" r="45" class="progress-bg"/>
-                                <circle id="progress-circle" cx="50" cy="50" r="45" class="progress-fill"/>
-                            </svg>
+                <!-- 顶部状态栏 -->
+                <div class="test-top-bar">
+                    <div class="test-timer-mini" id="test-timer-mini">60</div>
+                    <div class="test-progress-mini">
+                        <div class="progress-bar-thin" id="progress-bar-thin">
+                            <div class="progress-fill-thin" id="progress-fill-thin"></div>
                         </div>
                     </div>
                 </div>
 
-                <div class="live-stats">
-                    <div class="stat-card primary">
-                        <span class="stat-value" id="live-count">0</span>
-                        <span class="stat-label">次</span>
+                <!-- 主显示区：镜像视频+骨架 -->
+                <div class="mirror-container">
+                    <video id="mirror-video" autoplay playsinline muted></video>
+                    <canvas id="mirror-canvas"></canvas>
+
+                    <!-- 实时问题提示覆盖层 -->
+                    <div class="live-problem-hint" id="live-problem-hint">
+                        <span class="hint-icon">💡</span>
+                        <span class="hint-text" id="hint-text">手臂稍开，收紧一下</span>
                     </div>
-                    <div class="stat-card">
-                        <span class="stat-value" id="live-tempo">--</span>
-                        <span class="stat-label">BPM</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-value" id="live-calories">0</span>
-                        <span class="stat-label">卡</span>
+
+                    <!-- 当前动作指示 -->
+                    <div class="action-indicator" id="action-indicator">
+                        <span class="action-icon">⬆️</span>
                     </div>
                 </div>
 
-                <div class="waveform">
-                    <canvas id="waveform-canvas" width="300" height="60"></canvas>
-                </div>
+                <!-- 底部数据区 -->
+                <div class="test-bottom-area">
+                    <!-- 大数字计数 -->
+                    <div class="big-count-display">
+                        <span class="big-count" id="big-count">0</span>
+                        <span class="big-count-label">次</span>
+                    </div>
 
-                <!-- 语音提示 -->
-                <div class="voice-indicator" id="voice-indicator">
-                    <span class="voice-icon">🔊</span>
-                    <span id="voice-text">测试开始</span>
+                    <!-- 实时指标 -->
+                    <div class="live-metrics-row">
+                        <div class="live-metric-item">
+                            <span class="live-metric-value" id="live-bpm">--</span>
+                            <span class="live-metric-label">BPM</span>
+                        </div>
+                        <div class="live-metric-item">
+                            <span class="live-metric-value" id="live-height">--</span>
+                            <span class="live-metric-label">起跳</span>
+                        </div>
+                        <div class="live-metric-item">
+                            <span class="live-metric-value" id="live-arm">--</span>
+                            <span class="live-metric-label">手臂</span>
+                        </div>
+                    </div>
+
+                    <!-- 问题预警 -->
+                    <div class="problem-alerts" id="problem-alerts">
+                        <div class="alert-item hidden" id="alert-arm">
+                            <span class="alert-icon">🤲</span>
+                            <span>手臂外展</span>
+                        </div>
+                        <div class="alert-item hidden" id="alert-height">
+                            <span class="alert-icon">⬆️</span>
+                            <span>起跳过高</span>
+                        </div>
+                        <div class="alert-item hidden" id="alert-rhythm">
+                            <span class="alert-icon">🎵</span>
+                            <span>节奏不稳</span>
+                        </div>
+                    </div>
                 </div>
             </section>
 
