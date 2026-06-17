@@ -1,37 +1,18 @@
 /**
- * 体智汇AI单摇提分教练 - 主应用
+ * AI提分教练 - 主应用
+ * 赛博朋克科技风格
  */
-
-const DEMO_DATA = {
-    students: [
-        { id: 1, name: '张小明', class: 'class1', count: 85, mainProblem: 'arm_spread', improvement: 12 },
-        { id: 2, name: '李小红', class: 'class1', count: 92, mainProblem: 'jump_high', improvement: 8 },
-        { id: 3, name: '王小华', class: 'class1', count: 78, mainProblem: 'rhythm_unstable', improvement: 5 },
-        { id: 4, name: '刘小强', class: 'class1', count: 95, mainProblem: 'fatigue_drop', improvement: 3 },
-        { id: 5, name: '陈小丽', class: 'class1', count: 88, mainProblem: 'wrist_weak', improvement: 15 },
-        { id: 6, name: '杨小杰', class: 'class1', count: 72, mainProblem: 'arm_spread', improvement: 0 },
-        { id: 7, name: '赵小雨', class: 'class1', count: 98, mainProblem: 'jump_high', improvement: 10 },
-        { id: 8, name: '孙小鹏', class: 'class1', count: 82, mainProblem: 'rhythm_unstable', improvement: 7 }
-    ],
-    breaks: [
-        { student: '张小明', time: '14:32', reason: '手腕偏移' },
-        { student: '王小华', time: '14:28', reason: '节奏突变' },
-        { student: '杨小杰', time: '14:25', reason: '手臂外展过大' }
-    ]
-};
 
 class JumpRopeCoachApp {
     constructor() {
         this.analyzer = null;
-        this.currentMode = 'student';
-        this.currentClass = null;
-        this.currentStudent = null;
-        this.lastResult = null;
-        this.trainingTimer = null;
-        this.trainingRemaining = 180;
-        this.testTimer = null;
+        this.currentView = 'calibration';
         this.demoMode = false;
         this.demoInterval = null;
+        this.trainingTimer = null;
+        this.trainingRemaining = 180;
+        this.calibrationInterval = null;
+        this.lastResult = null;
         this.elements = {};
         this.init();
     }
@@ -40,159 +21,229 @@ class JumpRopeCoachApp {
         this.cacheElements();
         this.bindEvents();
         this.checkCameraSupport();
-        this.renderTeacherDashboard();
     }
 
     cacheElements() {
-        this.elements.classSelector = document.getElementById('class-selector');
-        this.elements.studentName = document.getElementById('student-name');
-        this.elements.startTestBtn = document.getElementById('start-test-btn');
-        this.elements.classSelect = document.getElementById('class-select');
-        this.elements.testArea = document.getElementById('test-area');
+        // 视图
+        this.elements.calibrationView = document.getElementById('calibration-view');
+        this.elements.countdownView = document.getElementById('countdown-view');
+        this.elements.testingView = document.getElementById('testing-view');
+        this.elements.resultView = document.getElementById('result-view');
+        this.elements.trainingView = document.getElementById('training-view');
+
+        // 摄像头
         this.elements.cameraPreview = document.getElementById('camera-preview');
         this.elements.poseCanvas = document.getElementById('pose-canvas');
-        this.elements.countdownOverlay = document.getElementById('countdown-overlay');
+
+        // 校准状态
+        this.elements.startBtn = document.getElementById('start-btn');
+        this.elements.positionStatus = document.getElementById('position-status');
+        this.elements.distanceValue = document.getElementById('distance-value');
+        this.elements.statusHeight = document.getElementById('status-height');
+        this.elements.statusAlign = document.getElementById('status-align');
+        this.elements.statusVisibility = document.getElementById('status-visibility');
+
+        // 倒计时
         this.elements.countdownNumber = document.getElementById('countdown-number');
+
+        // 测试
+        this.elements.testTimerDisplay = document.getElementById('test-timer-display');
+        this.elements.progressCircle = document.getElementById('progress-circle');
         this.elements.liveCount = document.getElementById('live-count');
         this.elements.liveTempo = document.getElementById('live-tempo');
-        this.elements.stopTestBtn = document.getElementById('stop-test-btn');
-        this.elements.testTimerDisplay = document.getElementById('timer-display');
-        this.elements.diagnosisResult = document.getElementById('diagnosis-result');
-        this.elements.trainingArea = document.getElementById('training-area');
-        this.elements.teacherClassSelector = document.getElementById('teacher-class-selector');
-        this.elements.studentRows = document.getElementById('student-rows');
-        this.elements.classTotal = document.getElementById('class-total');
-        this.elements.classAvg = document.getElementById('class-avg');
-        this.elements.classImproved = document.getElementById('class-improved');
-        this.elements.problemRanking = document.getElementById('problem-ranking');
-        this.elements.breakHistory = document.getElementById('break-history');
-        this.elements.toast = document.getElementById('toast');
-        this.elements.demoNotice = document.getElementById('demo-notice');
+        this.elements.liveCalories = document.getElementById('live-calories');
+        this.elements.waveformCanvas = document.getElementById('waveform-canvas');
+
+        // 结果
         this.elements.resultCount = document.getElementById('result-count');
+        this.elements.resultGrade = document.getElementById('result-grade');
         this.elements.mainProblem = document.getElementById('main-problem');
         this.elements.metricTempo = document.getElementById('metric-tempo');
         this.elements.metricStability = document.getElementById('metric-stability');
         this.elements.metricJump = document.getElementById('metric-jump');
         this.elements.metricArm = document.getElementById('metric-arm');
         this.elements.metricFatigue = document.getElementById('metric-fatigue');
-        this.elements.metricBreaks = document.getElementById('metric-breaks');
+        this.elements.prescriptionIcon = document.getElementById('prescription-icon');
         this.elements.prescriptionTitle = document.getElementById('prescription-title');
         this.elements.prescriptionDesc = document.getElementById('prescription-desc');
         this.elements.prescriptionDetail = document.getElementById('prescription-detail');
-        this.elements.trainingCountdown = document.getElementById('training-countdown');
-        this.elements.trainingInstruction = document.getElementById('training-instruction');
+
+        // 训练
+        this.elements.trainingTimer = document.getElementById('training-timer');
+        this.elements.exerciseIcon = document.getElementById('exercise-icon');
+        this.elements.exerciseTitle = document.getElementById('exercise-title');
+        this.elements.exerciseDesc = document.getElementById('exercise-desc');
         this.elements.trainingProgressFill = document.getElementById('training-progress-fill');
         this.elements.trainingProgressText = document.getElementById('training-progress-text');
+
+        // 按钮
+        this.elements.trainBtn = document.getElementById('train-btn');
+        this.elements.retestBtn = document.getElementById('retest-btn');
+        this.elements.skipTrainingBtn = document.getElementById('skip-training-btn');
+        this.elements.teacherModeBtn = document.getElementById('teacher-mode-btn');
+        this.elements.closeTeacherBtn = document.getElementById('close-teacher-btn');
+        this.elements.teacherPanel = document.getElementById('teacher-panel');
+
+        // Toast
+        this.elements.toast = document.getElementById('toast');
+        this.elements.demoNotice = document.getElementById('demo-notice');
     }
 
     bindEvents() {
-        document.querySelectorAll('.mode-btn').forEach(btn => {
-            btn.addEventListener('click', () => this.switchMode(btn.dataset.mode));
-        });
-
-        this.elements.classSelector.addEventListener('change', () => this.validateStudentInput());
-        this.elements.studentName.addEventListener('input', () => this.validateStudentInput());
-        this.elements.startTestBtn.addEventListener('click', () => this.startTest());
-        this.elements.stopTestBtn.addEventListener('click', () => this.stopTest());
-
-        document.getElementById('train-btn')?.addEventListener('click', () => this.startTraining());
-        document.getElementById('retest-btn')?.addEventListener('click', () => this.resetToTest());
-        document.getElementById('view-report-btn')?.addEventListener('click', () => this.showReport());
-        document.getElementById('finish-training-btn')?.addEventListener('click', () => this.finishTraining());
-
-        document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.addEventListener('click', () => this.switchTeacherTab(btn.dataset.tab));
-        });
-
-        this.elements.teacherClassSelector?.addEventListener('change', () => this.renderTeacherDashboard());
+        this.elements.startBtn.addEventListener('click', () => this.startTest());
+        this.elements.trainBtn.addEventListener('click', () => this.startTraining());
+        this.elements.retestBtn.addEventListener('click', () => this.resetToCalibration());
+        this.elements.skipTrainingBtn.addEventListener('click', () => this.finishTraining());
+        this.elements.teacherModeBtn.addEventListener('click', () => this.showTeacherPanel());
+        this.elements.closeTeacherBtn.addEventListener('click', () => this.hideTeacherPanel());
     }
 
     checkCameraSupport() {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            this.showToast('您的浏览器不支持摄像头，将使用演示模式');
+            this.showToast('浏览器不支持摄像头，将使用演示模式');
             this.demoMode = true;
-            this.elements.demoNotice?.classList.remove('hidden');
+            this.elements.demoNotice.classList.remove('hidden');
         }
+        this.initCamera();
     }
 
-    switchMode(mode) {
-        this.currentMode = mode;
-        document.querySelectorAll('.mode-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.mode === mode);
-        });
-        document.getElementById('student-mode').classList.toggle('active', mode === 'student');
-        document.getElementById('teacher-mode').classList.toggle('active', mode === 'teacher');
-        if (mode === 'teacher') this.renderTeacherDashboard();
-    }
-
-    switchTeacherTab(tab) {
-        document.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.tab === tab);
-        });
-        document.querySelectorAll('.tab-content').forEach(content => {
-            content.classList.toggle('active', content.id === `tab-${tab}`);
-        });
-        switch (tab) {
-            case 'overview': this.renderStudentList(); break;
-            case 'ranking': this.renderProblemRanking(); break;
-            case 'review': this.renderBreakHistory(); break;
-            case 'groups': this.renderTrainingGroups(); break;
-        }
-    }
-
-    validateStudentInput() {
-        const classSelected = this.elements.classSelector.value;
-        const nameEntered = this.elements.studentName.value.trim();
-        this.elements.startTestBtn.disabled = !classSelected || !nameEntered;
-    }
-
-    async startTest() {
-        this.currentClass = this.elements.classSelector.value;
-        this.currentStudent = this.elements.studentName.value.trim();
-
-        this.elements.classSelect.classList.add('hidden');
-        this.elements.testArea.classList.remove('hidden');
-
-        if (this.demoMode) {
-            this.startDemoTest();
-        } else {
-            await this.startRealTest();
-        }
-    }
-
-    async startRealTest() {
+    async initCamera() {
         if (!this.analyzer) {
             this.analyzer = new JumpRopeAnalyzer();
             await this.analyzer.init();
+
+            this.analyzer.onCalibrationUpdate = (data) => this.updateCalibrationUI(data);
             this.analyzer.onCountUpdate = (count) => {
                 this.elements.liveCount.textContent = count;
+                this.updateCalories(count);
             };
-            this.analyzer.onComplete = (metrics) => this.handleTestComplete(metrics);
+            this.analyzer.onMetricsUpdate = (data) => this.updateLiveMetrics(data);
+            this.analyzer.onComplete = (metrics) => this.showResults(metrics);
             this.analyzer.onError = (error) => {
                 this.showToast(error);
-                this.resetToTest();
+                this.demoMode = true;
+                this.elements.demoNotice.classList.remove('hidden');
             };
         }
 
-        const cameraReady = await this.analyzer.startCamera(
-            this.elements.cameraPreview,
-            this.elements.poseCanvas
-        );
+        if (this.demoMode) {
+            // 演示模式：模拟校准通过
+            this.elements.startBtn.disabled = false;
+            this.elements.positionStatus.textContent = '演示模式';
+            this.elements.positionStatus.classList.add('ready');
+            this.elements.distanceValue.textContent = '2.5';
+            this.elements.statusHeight.classList.add('ready');
+            this.elements.statusHeight.querySelector('.status-value').textContent = 'OK';
+            this.elements.statusAlign.classList.add('ready');
+            this.elements.statusAlign.querySelector('.status-value').textContent = 'OK';
+            this.elements.statusVisibility.classList.add('ready');
+            this.elements.statusVisibility.querySelector('.status-value').textContent = 'OK';
+        } else {
+            const success = await this.analyzer.startCamera(
+                this.elements.cameraPreview,
+                this.elements.poseCanvas
+            );
 
-        if (!cameraReady) {
-            this.showToast('摄像头启动失败，切换演示模式');
-            this.demoMode = true;
-            this.elements.demoNotice?.classList.remove('hidden');
-            this.startDemoTest();
-            return;
+            if (success) {
+                this.analyzer.startCalibration();
+                this.startCalibrationMonitor();
+            } else {
+                this.demoMode = true;
+                this.elements.demoNotice.classList.remove('hidden');
+                this.elements.startBtn.disabled = false;
+            }
         }
-
-        this.startCountdown();
     }
 
-    startDemoTest() {
+    startCalibrationMonitor() {
+        this.calibrationInterval = setInterval(() => {
+            if (this.analyzer.calibrationData) {
+                const data = this.analyzer.calibrationData;
+                if (data.isCalibrated) {
+                    this.elements.startBtn.disabled = false;
+                }
+            }
+        }, 100);
+    }
+
+    updateCalibrationUI(data) {
+        // 位置状态
+        if (data.isCalibrated) {
+            this.elements.positionStatus.textContent = '✓ 位置正确';
+            this.elements.positionStatus.classList.add('ready');
+            this.elements.startBtn.disabled = false;
+        } else if (data.visibility > 0.5) {
+            if (!data.isCentered) {
+                this.elements.positionStatus.textContent = '↔ 请居中站';
+            } else if (!data.isGoodDistance) {
+                this.elements.positionStatus.textContent = '↕ 请调整距离';
+            } else {
+                this.elements.positionStatus.textContent = '⏳ 等待稳定...';
+            }
+            this.elements.positionStatus.classList.remove('ready');
+            this.elements.startBtn.disabled = true;
+        } else {
+            this.elements.positionStatus.textContent = '👤 未检测到人体';
+            this.elements.positionStatus.classList.remove('ready');
+            this.elements.startBtn.disabled = true;
+        }
+
+        // 距离显示（估算）
+        if (data.personScale > 0) {
+            const distance = (0.5 / data.personScale * 3).toFixed(1);
+            this.elements.distanceValue.textContent = Math.min(9.9, Math.max(0.5, distance));
+        }
+
+        // 身高检测
+        if (data.isGoodDistance) {
+            this.elements.statusHeight.classList.add('ready');
+            this.elements.statusHeight.querySelector('.status-value').textContent = 'OK';
+        } else {
+            this.elements.statusHeight.classList.remove('ready');
+            this.elements.statusHeight.querySelector('.status-value').textContent = data.personScale > 0.3 ? '近' : '远';
+        }
+
+        // 居中程度
+        if (data.isCentered) {
+            this.elements.statusAlign.classList.add('ready');
+            this.elements.statusAlign.querySelector('.status-value').textContent = 'OK';
+        } else {
+            this.elements.statusAlign.classList.remove('ready');
+            this.elements.statusAlign.querySelector('.status-value').textContent = data.offsetX < 0.25 ? '偏' : '偏离';
+        }
+
+        // 骨骼识别
+        const visPercent = Math.round(data.visibility * 100);
+        if (visPercent > 80) {
+            this.elements.statusVisibility.classList.add('ready');
+            this.elements.statusVisibility.querySelector('.status-value').textContent = 'OK';
+        } else {
+            this.elements.statusVisibility.classList.remove('ready');
+            this.elements.statusVisibility.querySelector('.status-value').textContent = visPercent + '%';
+        }
+    }
+
+    switchView(viewName) {
+        const views = ['calibration', 'countdown', 'testing', 'result', 'training'];
+        views.forEach(v => {
+            const el = this.elements[v + 'View'];
+            if (el) {
+                el.classList.toggle('hidden', v !== viewName);
+                el.classList.toggle('active', v === viewName);
+            }
+        });
+        this.currentView = viewName;
+    }
+
+    startTest() {
+        if (this.calibrationInterval) {
+            clearInterval(this.calibrationInterval);
+        }
+
+        this.switchView('countdown');
+        this.analyzer.stopCalibration();
+
         let count = 3;
-        this.elements.countdownOverlay.classList.remove('hidden');
         this.elements.countdownNumber.textContent = count;
 
         const countdownInterval = setInterval(() => {
@@ -201,39 +252,124 @@ class JumpRopeCoachApp {
                 this.elements.countdownNumber.textContent = count;
             } else {
                 clearInterval(countdownInterval);
-                this.elements.countdownOverlay.classList.add('hidden');
-                this.elements.stopTestBtn.classList.remove('hidden');
-                this.runDemoTest();
+                this.startRealTest();
             }
         }, 1000);
     }
 
+    startRealTest() {
+        if (this.demoMode) {
+            this.runDemoTest();
+        } else {
+            this.switchView('testing');
+            this.analyzer.start();
+            this.startTestMonitor();
+        }
+    }
+
     runDemoTest() {
+        this.switchView('testing');
+
         let elapsed = 0;
         const duration = 30000;
         let count = 0;
         const baseTempo = 150 + Math.random() * 30;
+        const caloriesPerJump = 0.1;
 
         this.demoInterval = setInterval(() => {
             elapsed += 100;
             const remaining = Math.max(0, Math.ceil((duration - elapsed) / 1000));
-            if (this.elements.testTimerDisplay) {
-                this.elements.testTimerDisplay.textContent = remaining;
-            }
+            this.elements.testTimerDisplay.textContent = remaining;
 
-            if (Math.random() < 0.1) {
+            // 更新进度环
+            const progress = (elapsed / duration) * 100;
+            const dashOffset = 283 - (283 * progress / 100);
+            this.elements.progressCircle.style.strokeDashoffset = dashOffset;
+
+            // 随机增加次数
+            if (Math.random() < 0.12) {
                 count++;
                 this.elements.liveCount.textContent = count;
+                this.updateCalories(count * caloriesPerJump);
             }
 
+            // 更新节奏
             const tempo = baseTempo + Math.sin(elapsed / 2000) * 10;
             this.elements.liveTempo.textContent = Math.round(tempo);
 
+            // 更新波形
+            this.drawWaveform(Math.sin(elapsed / 100) * 30 + Math.random() * 10);
+
             if (elapsed >= duration) {
                 clearInterval(this.demoInterval);
-                this.handleTestComplete(this.generateDemoMetrics(count));
+                this.showResults(this.generateDemoMetrics(count));
             }
         }, 100);
+    }
+
+    startTestMonitor() {
+        const updateInterval = setInterval(() => {
+            if (!this.analyzer.isRunning) {
+                clearInterval(updateInterval);
+                return;
+            }
+
+            const elapsed = Date.now() - this.analyzer.startTime;
+            const remaining = Math.max(0, Math.ceil((this.duration - elapsed) / 1000));
+            this.elements.testTimerDisplay.textContent = remaining;
+
+            // 更新进度环
+            const progress = (elapsed / this.analyzer.duration) * 100;
+            const dashOffset = 283 - (283 * progress / 100);
+            this.elements.progressCircle.style.strokeDashoffset = dashOffset;
+
+            const live = this.analyzer.getLiveData();
+            this.elements.liveTempo.textContent = live.tempo || '--';
+            this.drawWaveform(Math.sin(elapsed / 100) * 30 + Math.random() * 10);
+        }, 100);
+    }
+
+    get duration() {
+        return 30000;
+    }
+
+    updateCalories(calories) {
+        this.elements.liveCalories.textContent = Math.round(calories);
+    }
+
+    updateLiveMetrics(data) {
+        // 实时更新（如果需要）
+    }
+
+    drawWaveform(value) {
+        const canvas = this.elements.waveformCanvas;
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        ctx.clearRect(0, 0, width, height);
+
+        // 绘制波形
+        ctx.strokeStyle = '#00f0ff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+
+        for (let x = 0; x < width; x++) {
+            const y = height / 2 + Math.sin((x + Date.now() / 50) / 10) * 20 + value * Math.sin(x / 20);
+            if (x === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        }
+        ctx.stroke();
+
+        // 绘制中线
+        ctx.strokeStyle = 'rgba(0, 240, 255, 0.3)';
+        ctx.beginPath();
+        ctx.moveTo(0, height / 2);
+        ctx.lineTo(width, height / 2);
+        ctx.stroke();
     }
 
     generateDemoMetrics(count) {
@@ -249,117 +385,100 @@ class JumpRopeCoachApp {
         };
     }
 
-    startCountdown() {
-        let count = 3;
-        this.elements.countdownOverlay.classList.remove('hidden');
-        this.elements.countdownNumber.textContent = count;
+    showResults(metrics) {
+        this.lastResult = metrics;
 
-        const countdownInterval = setInterval(() => {
-            count--;
-            if (count > 0) {
-                this.elements.countdownNumber.textContent = count;
-            } else {
-                clearInterval(countdownInterval);
-                this.elements.countdownOverlay.classList.add('hidden');
-                this.elements.stopTestBtn.classList.remove('hidden');
-                this.analyzer.start();
-                this.startLiveUpdate();
-            }
-        }, 1000);
-    }
-
-    startLiveUpdate() {
-        const updateInterval = setInterval(() => {
-            if (!this.analyzer || !this.analyzer.isRunning) {
-                clearInterval(updateInterval);
-                return;
-            }
-            const live = this.analyzer.getLiveData();
-            this.elements.liveCount.textContent = live.count;
-            this.elements.liveTempo.textContent = live.tempo || '--';
-        }, 100);
-    }
-
-    stopTest() {
-        if (this.demoMode) {
-            if (this.demoInterval) {
-                clearInterval(this.demoInterval);
-            }
-            const count = parseInt(this.elements.liveCount.textContent) || 0;
-            this.handleTestComplete(this.generateDemoMetrics(count));
-        } else if (this.analyzer) {
-            const metrics = this.analyzer.calculateMetrics();
-            this.analyzer.stop();
-            this.handleTestComplete(metrics);
-        }
-    }
-
-    handleTestComplete(metrics) {
-        const diagnosis = diagnose(metrics);
-        this.lastResult = { metrics, diagnosis };
+        // 计算等级
+        const grade = this.calculateGrade(metrics.count);
 
         this.elements.resultCount.textContent = metrics.count;
+        this.elements.resultGrade.textContent = grade;
+
+        // 诊断
+        const diagnosis = diagnose(metrics);
         this.elements.mainProblem.textContent = diagnosis.diagnosis;
+
+        // 更新指标
         this.updateMetricsDisplay(metrics);
         this.updatePrescription(diagnosis.prescriptionCode);
 
-        this.elements.testArea.classList.add('hidden');
-        this.elements.stopTestBtn.classList.add('hidden');
-        this.elements.diagnosisResult.classList.remove('hidden');
+        this.switchView('result');
+    }
 
-        this.showToast('诊断完成！');
+    calculateGrade(count) {
+        if (count >= 100) return 'S';
+        if (count >= 85) return 'A';
+        if (count >= 70) return 'B';
+        if (count >= 55) return 'C';
+        if (count >= 40) return 'D';
+        return 'E';
     }
 
     updateMetricsDisplay(metrics) {
+        // 平均节奏
         this.elements.metricTempo.textContent = formatMetricValue('avgTempo', metrics.avgTempo);
-        this.elements.metricTempo.className = 'metric-value';
+        this.elements.metricTempo.parentElement.querySelector('.metric-fill').style.width =
+            Math.min(100, metrics.avgTempo / 3) + '%';
 
-        this.elements.metricStability.textContent = formatMetricValue('tempoStability', metrics.tempoStability);
-        this.elements.metricStability.className = `metric-value ${getMetricRating('tempoStability', metrics.tempoStability)}`;
+        // 节奏稳定
+        const stabilityPercent = Math.round(metrics.tempoStability * 100);
+        this.elements.metricStability.textContent = stabilityPercent + '%';
+        this.elements.metricStability.parentElement.querySelector('.metric-fill').style.width =
+            stabilityPercent + '%';
 
-        this.elements.metricJump.textContent = formatMetricValue('jumpHeight', metrics.jumpHeight);
-        this.elements.metricJump.className = `metric-value ${getMetricRating('jumpHeight', metrics.jumpHeight)}`;
+        // 起跳高度（越低越好）
+        const jumpPercent = 100 - Math.round(metrics.jumpHeight * 500);
+        this.elements.metricJump.textContent = jumpPercent + '%';
+        this.elements.metricJump.parentElement.querySelector('.metric-fill').style.width =
+            jumpPercent + '%';
 
-        this.elements.metricArm.textContent = formatMetricValue('armSpread', metrics.armSpread);
-        this.elements.metricArm.className = `metric-value ${getMetricRating('armSpread', metrics.armSpread)}`;
+        // 手臂外展（越低越好）
+        const armPercent = 100 - Math.round(metrics.armSpread * 300);
+        this.elements.metricArm.textContent = armPercent + '%';
+        this.elements.metricArm.parentElement.querySelector('.metric-fill').style.width =
+            armPercent + '%';
 
-        this.elements.metricFatigue.textContent = formatMetricValue('fatigueDrop', metrics.fatigueDrop);
-        this.elements.metricFatigue.className = `metric-value ${getMetricRating('fatigueDrop', metrics.fatigueDrop)}`;
-
-        this.elements.metricBreaks.textContent = metrics.breakCount.toString();
-        this.elements.metricBreaks.className = `metric-value ${metrics.breakCount > 0 ? 'warning' : 'good'}`;
+        // 后半段掉速（越低越好）
+        const fatiguePercent = 100 - Math.round(metrics.fatigueDrop * 200);
+        this.elements.metricFatigue.textContent = fatiguePercent + '%';
+        this.elements.metricFatigue.parentElement.querySelector('.metric-fill').style.width =
+            fatiguePercent + '%';
     }
 
-    updatePrescription(prescriptionCode) {
-        const content = getPrescriptionContent(prescriptionCode);
-        const card = document.getElementById('prescription-card');
-        card.querySelector('.prescription-icon').textContent = content.icon;
+    updatePrescription(code) {
+        const content = getPrescriptionContent(code);
+
+        this.elements.prescriptionIcon.textContent = content.icon;
         this.elements.prescriptionTitle.textContent = content.title;
         this.elements.prescriptionDesc.textContent = content.description;
         this.elements.prescriptionDetail.textContent = content.detail;
 
-        const instruction = this.elements.trainingInstruction;
-        instruction.querySelector('h3').textContent = content.title;
-        instruction.querySelector('p').textContent = content.description;
+        // 训练页面
+        this.elements.exerciseIcon.textContent = content.icon;
+        this.elements.exerciseTitle.textContent = content.title;
+        this.elements.exerciseDesc.textContent = content.description;
     }
 
     startTraining() {
-        this.elements.diagnosisResult.classList.add('hidden');
-        this.elements.trainingArea.classList.remove('hidden');
+        this.switchView('training');
         this.trainingRemaining = 180;
         this.updateTrainingDisplay();
 
         this.trainingTimer = setInterval(() => {
             this.trainingRemaining--;
             this.updateTrainingDisplay();
-            if (this.trainingRemaining <= 0) this.finishTraining();
+
+            if (this.trainingRemaining <= 0) {
+                this.finishTraining();
+            }
         }, 1000);
     }
 
     updateTrainingDisplay() {
         const minutes = Math.floor(this.trainingRemaining / 60);
         const seconds = this.trainingRemaining % 60;
-        this.elements.trainingCountdown.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        this.elements.trainingTimer.textContent =
+            `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
         const progress = ((180 - this.trainingRemaining) / 180) * 100;
         this.elements.trainingProgressFill.style.width = `${progress}%`;
@@ -371,124 +490,50 @@ class JumpRopeCoachApp {
             clearInterval(this.trainingTimer);
             this.trainingTimer = null;
         }
-        this.showToast('训练完成！准备再次测试');
-        setTimeout(() => this.resetToTest(), 1500);
+
+        this.showToast('训练完成！');
+        setTimeout(() => this.resetToCalibration(), 1500);
     }
 
-    resetToTest() {
-        this.elements.trainingArea.classList.add('hidden');
-        this.elements.diagnosisResult.classList.add('hidden');
-        this.elements.testArea.classList.add('hidden');
-        this.elements.classSelect.classList.remove('hidden');
+    resetToCalibration() {
+        if (this.trainingTimer) {
+            clearInterval(this.trainingTimer);
+            this.trainingTimer = null;
+        }
+
         this.elements.liveCount.textContent = '0';
         this.elements.liveTempo.textContent = '--';
-        if (this.analyzer) this.analyzer.stop();
-    }
+        this.elements.liveCalories.textContent = '0';
+        this.elements.progressCircle.style.strokeDashoffset = 283;
 
-    showReport() {
-        this.showToast('完整报告功能开发中');
-    }
+        this.switchView('calibration');
 
-    renderTeacherDashboard() {
-        const classStudents = DEMO_DATA.students.filter(s => s.class === 'class1');
-        this.elements.classTotal.textContent = classStudents.length;
-        const avg = Math.round(classStudents.reduce((sum, s) => sum + s.count, 0) / classStudents.length);
-        this.elements.classAvg.textContent = avg;
-        const improved = classStudents.filter(s => s.improvement > 0).length;
-        this.elements.classImproved.textContent = improved;
-        this.renderStudentList();
-        this.renderProblemRanking();
-        this.renderBreakHistory();
-        this.renderTrainingGroups();
-    }
-
-    renderStudentList() {
-        const classStudents = DEMO_DATA.students.filter(s => s.class === 'class1');
-        this.elements.studentRows.innerHTML = classStudents.map(student => {
-            const problemTag = getProblemName(student.mainProblem);
-            const prescription = getPrescription(student.mainProblem);
-            const tagClass = student.improvement > 10 ? 'good' : student.improvement > 0 ? 'warning' : '';
-            return `
-                <div class="student-row">
-                    <span>${student.name}</span>
-                    <span>${student.count}</span>
-                    <span><span class="problem-tag ${tagClass}">${problemTag}</span></span>
-                    <span>${prescription.title}</span>
-                </div>
-            `;
-        }).join('');
-    }
-
-    renderProblemRanking() {
-        const classStudents = DEMO_DATA.students.filter(s => s.class === 'class1');
-        const problemCounts = { arm_spread: 0, jump_high: 0, rhythm_unstable: 0, fatigue_drop: 0, wrist_weak: 0 };
-        classStudents.forEach(s => {
-            if (problemCounts.hasOwnProperty(s.mainProblem)) problemCounts[s.mainProblem]++;
-        });
-
-        const maxCount = Math.max(...Object.values(problemCounts), 1);
-        const colors = { arm_spread: '#FF6B6B', jump_high: '#4ECDC4', rhythm_unstable: '#FFE66D', fatigue_drop: '#95E1D3', wrist_weak: '#DDA0DD' };
-
-        this.elements.problemRanking.innerHTML = Object.entries(problemCounts)
-            .filter(([_, count]) => count > 0)
-            .sort((a, b) => b[1] - a[1])
-            .map(([problem, count]) => `
-                <div class="ranking-item">
-                    <div class="ranking-label">
-                        <span>${getProblemName(problem)}</span>
-                        <span>${count}人</span>
-                    </div>
-                    <div class="ranking-bar">
-                        <div class="ranking-bar-fill" style="width:${(count/maxCount)*100}%;background:${colors[problem]}"></div>
-                    </div>
-                </div>
-            `).join('');
-    }
-
-    renderBreakHistory() {
-        if (DEMO_DATA.breaks.length === 0) {
-            this.elements.breakHistory.innerHTML = '<p class="empty-state">暂无断绳记录</p>';
-            return;
+        if (this.analyzer) {
+            this.analyzer.stop();
+            this.analyzer.startCalibration();
+            this.startCalibrationMonitor();
         }
-        this.elements.breakHistory.innerHTML = DEMO_DATA.breaks.map(brk => `
-            <div style="padding:12px;border-bottom:1px solid var(--border)">
-                <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-                    <strong>${brk.student}</strong>
-                    <span style="color:var(--text-light)">${brk.time}</span>
-                </div>
-                <div style="font-size:13px;color:var(--text-light)">断绳原因: ${brk.reason}</div>
-            </div>
-        `).join('');
     }
 
-    renderTrainingGroups() {
-        const classStudents = DEMO_DATA.students.filter(s => s.class === 'class1');
-        const groups = {
-            'rhythm_unstable': { members: [], element: 'group-a-members' },
-            'arm_spread': { members: [], element: 'group-b-members' },
-            'jump_high': { members: [], element: 'group-c-members' },
-            'fatigue_drop': { members: [], element: 'group-d-members' }
-        };
+    showTeacherPanel() {
+        this.elements.teacherPanel.classList.remove('hidden');
+    }
 
-        classStudents.forEach(s => {
-            if (groups.hasOwnProperty(s.mainProblem)) groups[s.mainProblem].members.push(s.name);
-        });
-
-        Object.entries(groups).forEach(([_, data]) => {
-            const membersEl = document.getElementById(data.element);
-            const countEl = membersEl.parentElement.querySelector('.group-count');
-            countEl.textContent = `${data.members.length}人`;
-            membersEl.textContent = data.members.length > 0 ? data.members.join('、') : '暂无成员';
-        });
+    hideTeacherPanel() {
+        this.elements.teacherPanel.classList.add('hidden');
     }
 
     showToast(message) {
         this.elements.toast.textContent = message;
         this.elements.toast.classList.remove('hidden');
-        setTimeout(() => this.elements.toast.classList.add('hidden'), 2500);
+
+        setTimeout(() => {
+            this.elements.toast.classList.add('hidden');
+        }, 2500);
     }
 }
 
+// 启动应用
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new JumpRopeCoachApp();
 });

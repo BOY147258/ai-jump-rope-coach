@@ -1,18 +1,16 @@
 /**
- * 跳绳分析器
+ * 跳绳分析器 - 赛博朋克风格
  * 使用 MediaPipe Pose 提取人体关键点，分析跳绳动作
  */
 
 class JumpRopeAnalyzer {
     constructor() {
         this.isRunning = false;
+        this.isCalibrating = false;
         this.startTime = 0;
         this.duration = 30000;
         this.pose = null;
         this.camera = null;
-
-        this.landmarksBuffer = [];
-        this.maxBufferSize = 300;
 
         this.jumpCount = 0;
         this.breakCount = 0;
@@ -29,8 +27,17 @@ class JumpRopeAnalyzer {
         this.airThreshold = 0.02;
         this.groundLevel = null;
 
+        this.calibrationData = {
+            isCalibrated: false,
+            personCenterX: 0,
+            personCenterY: 0,
+            personScale: 0,
+            visibility: 0
+        };
+
         this.potentialBreaks = [];
 
+        this.onCalibrationUpdate = null;
         this.onCountUpdate = null;
         this.onMetricsUpdate = null;
         this.onComplete = null;
@@ -57,7 +64,7 @@ class JumpRopeAnalyzer {
         try {
             this.camera = new Camera(videoElement, {
                 onFrame: async () => {
-                    if (this.pose && this.isRunning) {
+                    if (this.pose) {
                         await this.pose.send({ image: videoElement });
                     }
                 },
@@ -70,13 +77,35 @@ class JumpRopeAnalyzer {
             return true;
         } catch (error) {
             console.error('摄像头启动失败:', error);
-            if (this.onError) this.onError('无法访问摄像头，请检查权限设置');
+            if (this.onError) this.onError('无法访问摄像头');
             return false;
         }
     }
 
+    /**
+     * 开始校准
+     */
+    startCalibration() {
+        this.isCalibrating = true;
+        this.calibrationData = {
+            isCalibrated: false,
+            personCenterX: 0,
+            personCenterY: 0,
+            personScale: 0,
+            visibility: 0
+        };
+    }
+
+    /**
+     * 停止校准
+     */
+    stopCalibration() {
+        this.isCalibrating = false;
+    }
+
     start() {
         this.isRunning = true;
+        this.isCalibrating = false;
         this.startTime = Date.now();
         this.jumpCount = 0;
         this.breakCount = 0;
@@ -97,25 +126,98 @@ class JumpRopeAnalyzer {
     }
 
     onPoseResults(results) {
-        if (!this.isRunning) return;
+        if (!this.canvasElement) return;
 
-        const now = Date.now();
-        const elapsed = now - this.startTime;
-
+        // 始终绘制姿态
         this.drawPose(results);
 
-        if (elapsed <= this.duration) {
+        // 校准模式
+        if (this.isCalibrating && results.poseLandmarks) {
+            this.processCalibration(results.poseLandmarks);
+        }
+
+        // 测试模式
+        if (this.isRunning) {
+            const elapsed = Date.now() - this.startTime;
+
             if (results.poseLandmarks) {
                 this.processLandmarks(results.poseLandmarks, elapsed);
             }
-        } else if (this.isRunning) {
-            this.stop();
-            if (this.onComplete) {
-                this.onComplete(this.calculateMetrics());
+
+            // 更新实时回调
+            if (this.onMetricsUpdate) {
+                this.onMetricsUpdate(this.getLiveData());
+            }
+
+            // 时间到
+            if (elapsed >= this.duration) {
+                this.stop();
+                if (this.onComplete) {
+                    this.onComplete(this.calculateMetrics());
+                }
             }
         }
     }
 
+    /**
+     * 处理校准
+     */
+    processCalibration(landmarks) {
+        const keyPoints = this.getVisibleKeyPoints(landmarks);
+        if (keyPoints.length < 10) {
+            this.calibrationData.visibility = keyPoints.length / 17;
+            if (this.onCalibrationUpdate) {
+                this.onCalibrationUpdate(this.calibrationData);
+            }
+            return;
+        }
+
+        // 计算人体中心
+        let sumX = 0, sumY = 0;
+        keyPoints.forEach(p => {
+            sumX += p.x;
+            sumY += p.y;
+        });
+
+        const centerX = sumX / keyPoints.length;
+        const centerY = sumY / keyPoints.length;
+
+        // 计算人体尺度（基于身高比例）
+        const headY = landmarks[0].y;
+        const footY = Math.max(landmarks[27].y, landmarks[28].y);
+        const scale = footY - headY;
+
+        // 检查是否居中（理想中心是0.5）
+        const offsetX = Math.abs(centerX - 0.5);
+        const offsetY = Math.abs(centerY - 0.4); // 稍微偏上
+
+        this.calibrationData = {
+            isCalibrated: keyPoints.length >= 15 && offsetX < 0.15 && offsetY < 0.1,
+            personCenterX: centerX,
+            personCenterY: centerY,
+            personScale: scale,
+            visibility: keyPoints.length / 17,
+            offsetX: offsetX,
+            offsetY: offsetY,
+            isCentered: offsetX < 0.15,
+            isGoodDistance: scale > 0.3 && scale < 0.6
+        };
+
+        if (this.onCalibrationUpdate) {
+            this.onCalibrationUpdate(this.calibrationData);
+        }
+    }
+
+    /**
+     * 获取可见的关键点
+     */
+    getVisibleKeyPoints(landmarks) {
+        return landmarks.filter(p => p.visibility > 0.5);
+    }
+
+    /**
+     * 赛博朋克风格绘制姿态
+     */
     drawPose(results) {
         if (!this.canvasElement) return;
 
@@ -126,32 +228,58 @@ class JumpRopeAnalyzer {
         ctx.clearRect(0, 0, this.canvasElement.width, this.canvasElement.height);
 
         if (results.poseLandmarks) {
+            // 绘制发光效果
+            this.drawGlow(ctx, results.poseLandmarks);
+            // 绘制连接线
             this.drawConnections(ctx, results.poseLandmarks);
+            // 绘制关键点
             this.drawLandmarks(ctx, results.poseLandmarks);
         }
     }
 
+    drawGlow(ctx, landmarks) {
+        ctx.shadowColor = '#00f0ff';
+        ctx.shadowBlur = 20;
+
+        const keyPoints = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28];
+        keyPoints.forEach((idx) => {
+            const point = landmarks[idx];
+            if (point && point.visibility > 0.5) {
+                ctx.fillStyle = 'rgba(0, 240, 255, 0.3)';
+                ctx.beginPath();
+                ctx.arc(
+                    point.x * this.canvasElement.width,
+                    point.y * this.canvasElement.height,
+                    15,
+                    0,
+                    2 * Math.PI
+                );
+                ctx.fill();
+            }
+        });
+
+        ctx.shadowBlur = 0;
+    }
+
     drawConnections(ctx, landmarks) {
         const connections = [
-            [11, 12],
-            [11, 13], [12, 14],
-            [13, 15], [14, 16],
-            [11, 23], [12, 24],
-            [23, 24],
-            [23, 25], [24, 26],
-            [25, 27], [26, 28],
-            [27, 29], [28, 30],
-            [29, 31], [30, 32]
+            [11, 12, '#00f0ff'],
+            [11, 13, '#00ff88'], [12, 14, '#00ff88'],
+            [13, 15, '#00ff88'], [14, 16, '#00ff88'],
+            [11, 23, '#ff00aa'], [12, 24, '#ff00aa'],
+            [23, 24, '#ff00aa'],
+            [23, 25, '#ffaa00'], [24, 26, '#ffaa00'],
+            [25, 27, '#ffaa00'], [26, 28, '#ffaa00']
         ];
 
-        ctx.strokeStyle = '#4F46E5';
-        ctx.lineWidth = 3;
-
-        connections.forEach(([start, end]) => {
+        connections.forEach(([start, end, color]) => {
             const startPoint = landmarks[start];
             const endPoint = landmarks[end];
 
             if (startPoint && endPoint && startPoint.visibility > 0.5 && endPoint.visibility > 0.5) {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
                 ctx.beginPath();
                 ctx.moveTo(startPoint.x * this.canvasElement.width, startPoint.y * this.canvasElement.height);
                 ctx.lineTo(endPoint.x * this.canvasElement.width, endPoint.y * this.canvasElement.height);
@@ -161,18 +289,43 @@ class JumpRopeAnalyzer {
     }
 
     drawLandmarks(ctx, landmarks) {
-        ctx.fillStyle = '#4F46E5';
+        const keyPoints = [
+            { idx: 11, color: '#00f0ff' },
+            { idx: 12, color: '#00f0ff' },
+            { idx: 13, color: '#00ff88' },
+            { idx: 14, color: '#00ff88' },
+            { idx: 15, color: '#00ff88' },
+            { idx: 16, color: '#00ff88' },
+            { idx: 23, color: '#ff00aa' },
+            { idx: 24, color: '#ff00aa' },
+            { idx: 25, color: '#ffaa00' },
+            { idx: 26, color: '#ffaa00' },
+            { idx: 27, color: '#ffaa00' },
+            { idx: 28, color: '#ffaa00' }
+        ];
 
-        const keyPoints = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32];
-
-        keyPoints.forEach((idx) => {
+        keyPoints.forEach(({ idx, color }) => {
             const point = landmarks[idx];
             if (point && point.visibility > 0.5) {
+                // 外圈
+                ctx.fillStyle = color;
                 ctx.beginPath();
                 ctx.arc(
                     point.x * this.canvasElement.width,
                     point.y * this.canvasElement.height,
-                    5,
+                    6,
+                    0,
+                    2 * Math.PI
+                );
+                ctx.fill();
+
+                // 内圈
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(
+                    point.x * this.canvasElement.width,
+                    point.y * this.canvasElement.height,
+                    3,
                     0,
                     2 * Math.PI
                 );
@@ -330,7 +483,8 @@ class JumpRopeAnalyzer {
             tempo: this.jumpInterval.length > 0
                 ? Math.round(60000 / (this.jumpInterval.slice(-5).reduce((a, b) => a + b, 0) / 5))
                 : 0,
-            inAir: this.inAir
+            inAir: this.inAir,
+            elapsed: this.isRunning ? Date.now() - this.startTime : 0
         };
     }
 }
