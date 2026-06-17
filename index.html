@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>体智汇AI单摇提分教练</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 顶部导航 -->
+        <header class="app-header">
+            <h1>体智汇AI提分教练</h1>
+            <div class="mode-toggle">
+                <button class="mode-btn active" data-mode="student">学生端</button>
+                <button class="mode-btn" data-mode="teacher">教师端</button>
+            </div>
+        </header>
+
+        <!-- 学生端主界面 -->
+        <main id="student-mode" class="mode-content active">
+            <!-- 班级选择 -->
+            <section id="class-select" class="card">
+                <h2>选择班级</h2>
+                <select id="class-selector" class="select-input">
+                    <option value="">请选择班级</option>
+                    <option value="class1">一年级一班</option>
+                    <option value="class2">一年级二班</option>
+                    <option value="class3">二年级一班</option>
+                    <option value="class4">二年级二班</option>
+                    <option value="class5">三年级一班</option>
+                    <option value="class6">三年级二班</option>
+                </select>
+                <input type="text" id="student-name" class="text-input" placeholder="输入姓名">
+                <button id="start-test-btn" class="primary-btn" disabled>开始30秒AI诊断</button>
+            </section>
+
+            <!-- 测试区域 -->
+            <section id="test-area" class="card hidden">
+                <div class="camera-container">
+                    <video id="camera-preview" autoplay playsinline></video>
+                    <canvas id="pose-canvas"></canvas>
+                    <div id="countdown-overlay" class="overlay">
+                        <span id="countdown-number">3</span>
+                    </div>
+                </div>
+                <div class="test-info">
+                    <div class="stat">
+                        <span class="stat-label">已跳</span>
+                        <span id="live-count" class="stat-value">0</span>
+                        <span class="stat-unit">次</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">实时节奏</span>
+                        <span id="live-tempo" class="stat-value">--</span>
+                        <span class="stat-unit">BPM</span>
+                    </div>
+                </div>
+                <button id="stop-test-btn" class="secondary-btn hidden">结束测试</button>
+            </section>
+
+            <!-- 诊断结果 -->
+            <section id="diagnosis-result" class="card hidden">
+                <h2>诊断完成</h2>
+                <div class="result-summary">
+                    <div class="main-stat">
+                        <span id="result-count" class="big-number">0</span>
+                        <span class="unit">次/30秒</span>
+                    </div>
+                    <div class="diagnosis-card">
+                        <div class="diagnosis-icon">⚡</div>
+                        <div class="diagnosis-text">
+                            <h3>最大问题</h3>
+                            <p id="main-problem">分析中...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <span class="metric-label">平均节奏</span>
+                        <span id="metric-tempo" class="metric-value">--</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">节奏稳定</span>
+                        <span id="metric-stability" class="metric-value">--</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">起跳高度</span>
+                        <span id="metric-jump" class="metric-value">--</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">手臂外展</span>
+                        <span id="metric-arm" class="metric-value">--</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">后半段掉速</span>
+                        <span id="metric-fatigue" class="metric-value">--</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">断绳次数</span>
+                        <span id="metric-breaks" class="metric-value">--</span>
+                    </div>
+                </div>
+
+                <div class="prescription-section">
+                    <h3>训练处方</h3>
+                    <div id="prescription-card" class="prescription-card">
+                        <div class="prescription-icon">🎯</div>
+                        <div class="prescription-content">
+                            <h4 id="prescription-title">加载中...</h4>
+                            <p id="prescription-desc">根据你的问题，推荐针对性训练</p>
+                            <div id="prescription-detail" class="prescription-detail"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="train-btn" class="primary-btn">开始3分钟训练</button>
+                    <button id="retest-btn" class="secondary-btn">再次测试</button>
+                    <button id="view-report-btn" class="text-btn">查看完整报告</button>
+                </div>
+            </section>
+
+            <!-- 训练区域 -->
+            <section id="training-area" class="card hidden">
+                <h2>训练中</h2>
+                <div class="training-timer">
+                    <div id="training-countdown" class="countdown-circle">3:00</div>
+                </div>
+                <div id="training-instruction" class="training-instruction">
+                    <h3>低弹跳训练</h3>
+                    <p>脚尖轻点地，身体上下幅度尽量小</p>
+                </div>
+                <div class="training-progress">
+                    <div class="progress-bar">
+                        <div id="training-progress-fill" class="progress-fill"></div>
+                    </div>
+                    <span id="training-progress-text">0%</span>
+                </div>
+                <button id="finish-training-btn" class="secondary-btn">跳过训练</button>
+            </section>
+        </main>
+
+        <!-- 教师端主界面 -->
+        <main id="teacher-mode" class="mode-content">
+            <!-- 教师导航 -->
+            <nav class="teacher-nav">
+                <button class="nav-btn active" data-tab="overview">班级总览</button>
+                <button class="nav-btn" data-tab="ranking">问题排行</button>
+                <button class="nav-btn" data-tab="review">断绳回放</button>
+                <button class="nav-btn" data-tab="groups">训练分组</button>
+            </nav>
+
+            <!-- 班级总览 -->
+            <section id="tab-overview" class="tab-content active">
+                <div class="class-header">
+                    <select id="teacher-class-selector" class="select-input">
+                        <option value="class1">一年级一班</option>
+                        <option value="class2">一年级二班</option>
+                        <option value="class3">二年级一班</option>
+                        <option value="class4">二年级二班</option>
+                        <option value="class5">三年级一班</option>
+                        <option value="class6">三年级二班</option>
+                    </select>
+                </div>
+
+                <div class="class-stats">
+                    <div class="stat-card">
+                        <span class="stat-number" id="class-total">0</span>
+                        <span class="stat-desc">今日测试人数</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number" id="class-avg">0</span>
+                        <span class="stat-desc">班级平均成绩</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number" id="class-improved">0</span>
+                        <span class="stat-desc">本周进步人数</span>
+                    </div>
+                </div>
+
+                <div class="student-list">
+                    <h3>学生列表</h3>
+                    <div id="student-table" class="data-table">
+                        <div class="table-header">
+                            <span>姓名</span>
+                            <span>成绩</span>
+                            <span>最大问题</span>
+                            <span>建议训练</span>
+                        </div>
+                        <div id="student-rows" class="table-body">
+                            <!-- 动态生成 -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 问题排行榜 -->
+            <section id="tab-ranking" class="tab-content">
+                <h2>班级问题分布</h2>
+                <div id="problem-ranking" class="ranking-chart">
+                    <!-- 动态生成 -->
+                </div>
+                <div class="ranking-legend">
+                    <div class="legend-item">
+                        <span class="legend-color" style="background: #FF6B6B"></span>
+                        <span>手臂外展</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background: #4ECDC4"></span>
+                        <span>起跳过高</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background: #FFE66D"></span>
+                        <span>节奏不稳</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background: #95E1D3"></span>
+                        <span>后半段掉速</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color" style="background: #DDA0DD"></span>
+                        <span>手腕不足</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 断绳回放 -->
+            <section id="tab-review" class="tab-content">
+                <h2>断绳回放</h2>
+                <div id="break-history" class="break-list">
+                    <p class="empty-state">暂无断绳记录</p>
+                </div>
+            </section>
+
+            <!-- 训练分组 -->
+            <section id="tab-groups" class="tab-content">
+                <h2>自动训练分组</h2>
+                <div class="groups-container">
+                    <div class="group-card group-a">
+                        <div class="group-header">
+                            <span class="group-tag">A组</span>
+                            <span class="group-count">0人</span>
+                        </div>
+                        <h4>节奏训练组</h4>
+                        <p>节拍器训练：120-160BPM</p>
+                        <div class="group-members" id="group-a-members"></div>
+                    </div>
+                    <div class="group-card group-b">
+                        <div class="group-header">
+                            <span class="group-tag">B组</span>
+                            <span class="group-count">0人</span>
+                        </div>
+                        <h4>夹肘训练组</h4>
+                        <p>肘部靠近身体练习</p>
+                        <div class="group-members" id="group-b-members"></div>
+                    </div>
+                    <div class="group-card group-c">
+                        <div class="group-header">
+                            <span class="group-tag">C组</span>
+                            <span class="group-count">0人</span>
+                        </div>
+                        <h4>低弹跳训练组</h4>
+                        <p>脚尖轻点地，幅度小</p>
+                        <div class="group-members" id="group-c-members"></div>
+                    </div>
+                    <div class="group-card group-d">
+                        <div class="group-header">
+                            <span class="group-tag">D组</span>
+                            <span class="group-count">0人</span>
+                        </div>
+                        <h4>耐力训练组</h4>
+                        <p>15秒稳跳+15秒加速</p>
+                        <div class="group-members" id="group-d-members"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Toast通知 -->
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="js/prescriptions.js"></script>
+    <script src="js/diagnosis.js"></script>
+    <script src="js/analyzer.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
