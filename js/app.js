@@ -1,28 +1,29 @@
 /**
- * AI提分教练 - 主应用 v2.0
- * 包含历史记录、语音提示、进步曲线
+ * AI提分教练 - 主应用 v3.0
+ * 简化流程：自动检测 → 识别准备 → 3秒倒计时 → 开始测试
  */
 
 class JumpRopeCoachApp {
     constructor() {
         this.analyzer = null;
-        this.currentView = 'calibration';
+        this.currentView = 'detect';
         this.demoMode = false;
         this.demoInterval = null;
         this.trainingTimer = null;
         this.trainingRemaining = 180;
-        this.calibrationInterval = null;
         this.lastResult = null;
         this.lastCount = null;
+        this.countdownInterval = null;
         this.elements = {};
         this.settings = {};
+        this.personDetected = false;
+        this.readyDetected = false;
+        this.autoStartEnabled = true;
         this.init();
     }
 
     init() {
-        // 加载设置
         this.settings = Storage.getSettings();
-
         this.cacheElements();
         this.bindEvents();
         this.checkCameraSupport();
@@ -32,18 +33,27 @@ class JumpRopeCoachApp {
 
     cacheElements() {
         // 视图
-        this.elements.calibrationView = document.getElementById('calibration-view');
-        this.elements.countdownView = document.getElementById('countdown-view');
+        this.elements.detectView = document.getElementById('detect-view');
         this.elements.testingView = document.getElementById('testing-view');
         this.elements.resultView = document.getElementById('result-view');
         this.elements.trainingView = document.getElementById('training-view');
         this.elements.historyView = document.getElementById('history-view');
         this.elements.settingsView = document.getElementById('settings-view');
 
+        // 检测页面
+        this.elements.detectHint = document.getElementById('detect-hint');
+        this.elements.statusIcon = document.getElementById('status-icon');
+        this.elements.statusText = document.getElementById('status-text');
+        this.elements.checkPerson = document.getElementById('check-person');
+        this.elements.checkReady = document.getElementById('check-ready');
+        this.elements.countdownOverlay = document.getElementById('countdown-overlay');
+        this.elements.countdownNumber = document.getElementById('countdown-number');
+        this.elements.hintText = document.getElementById('hint-text');
+        this.elements.startBtn = document.getElementById('start-btn');
+
         // 按钮
         this.elements.historyBtn = document.getElementById('history-btn');
         this.elements.settingsBtn = document.getElementById('settings-btn');
-        this.elements.startBtn = document.getElementById('start-btn');
         this.elements.trainBtn = document.getElementById('train-btn');
         this.elements.retestBtn = document.getElementById('retest-btn');
         this.elements.skipTrainingBtn = document.getElementById('skip-training-btn');
@@ -57,21 +67,6 @@ class JumpRopeCoachApp {
         // 摄像头
         this.elements.cameraPreview = document.getElementById('camera-preview');
         this.elements.poseCanvas = document.getElementById('pose-canvas');
-
-        // 校准
-        this.elements.positionStatus = document.getElementById('position-status');
-        this.elements.distanceValue = document.getElementById('distance-value');
-        this.elements.statusHeight = document.getElementById('status-height');
-        this.elements.statusAlign = document.getElementById('status-align');
-        this.elements.statusVisibility = document.getElementById('status-visibility');
-
-        // 快捷统计
-        this.elements.statBest = document.getElementById('stat-best');
-        this.elements.statImprove = document.getElementById('stat-improve');
-        this.elements.statToday = document.getElementById('stat-today');
-
-        // 倒计时
-        this.elements.countdownNumber = document.getElementById('countdown-number');
 
         // 测试
         this.elements.testTimerDisplay = document.getElementById('test-timer-display');
@@ -104,6 +99,9 @@ class JumpRopeCoachApp {
         this.elements.prescriptionDesc = document.getElementById('prescription-desc');
         this.elements.prescriptionDetail = document.getElementById('prescription-detail');
         this.elements.chartCanvas = document.getElementById('chart-canvas');
+        this.elements.step1 = document.getElementById('step-1');
+        this.elements.step2 = document.getElementById('step-2');
+        this.elements.step3 = document.getElementById('step-3');
 
         // 训练
         this.elements.trainingTimer = document.getElementById('training-timer');
@@ -112,7 +110,8 @@ class JumpRopeCoachApp {
         this.elements.exerciseDesc = document.getElementById('exercise-desc');
         this.elements.trainingProgressFill = document.getElementById('training-progress-fill');
         this.elements.trainingProgressText = document.getElementById('training-progress-text');
-        this.elements.trainingTips = document.getElementById('training-tips');
+        this.elements.trainingTip = document.getElementById('training-tip');
+        this.elements.demoEmoji = document.getElementById('demo-emoji');
 
         // 教师端
         this.elements.teacherPanel = document.getElementById('teacher-panel');
@@ -144,9 +143,9 @@ class JumpRopeCoachApp {
         this.elements.settingsBtn?.addEventListener('click', () => this.showSettings());
 
         // 主流程
-        this.elements.startBtn?.addEventListener('click', () => this.startTest());
+        this.elements.startBtn?.addEventListener('click', () => this.startCountdown());
         this.elements.trainBtn?.addEventListener('click', () => this.startTraining());
-        this.elements.retestBtn?.addEventListener('click', () => this.resetToCalibration());
+        this.elements.retestBtn?.addEventListener('click', () => this.resetToDetect());
         this.elements.skipTrainingBtn?.addEventListener('click', () => this.finishTraining());
         this.elements.shareBtn?.addEventListener('click', () => this.shareResult());
 
@@ -170,8 +169,12 @@ class JumpRopeCoachApp {
         if (this.elements.voiceToggle) {
             this.elements.voiceToggle.checked = this.settings.voiceEnabled;
         }
+        const duration = this.settings.testDuration || 60;
         if (this.elements.durationSelect) {
-            this.elements.durationSelect.value = this.settings.testDuration || 30;
+            this.elements.durationSelect.value = duration;
+        }
+        if (this.elements.testTimerDisplay) {
+            this.elements.testTimerDisplay.textContent = duration;
         }
     }
 
@@ -184,6 +187,9 @@ class JumpRopeCoachApp {
     changeDuration(value) {
         this.settings.testDuration = parseInt(value);
         Storage.saveSettings(this.settings);
+        if (this.elements.testTimerDisplay) {
+            this.elements.testTimerDisplay.textContent = value;
+        }
     }
 
     checkCameraSupport() {
@@ -200,12 +206,18 @@ class JumpRopeCoachApp {
             this.analyzer = new JumpRopeAnalyzer();
             await this.analyzer.init();
 
-            this.analyzer.onCalibrationUpdate = (data) => this.updateCalibrationUI(data);
+            // 设置测试时长
+            const duration = this.settings.testDuration || 60;
+            this.analyzer.setDuration(duration);
+
+            // 回调设置
+            this.analyzer.onPersonDetected = (data) => this.onPersonDetected(data);
+            this.analyzer.onReadyDetected = () => this.onReadyDetected();
             this.analyzer.onCountUpdate = (count) => {
                 this.elements.liveCount.textContent = count;
                 this.updateCalories(count);
             };
-            this.analyzer.onMetricsUpdate = (data) => this.updateLiveMetrics(data);
+            this.analyzer.onMetricsUpdate = (data) => {};
             this.analyzer.onComplete = (metrics) => this.showResults(metrics);
             this.analyzer.onError = (error) => {
                 this.showToast(error);
@@ -215,108 +227,92 @@ class JumpRopeCoachApp {
         }
 
         if (this.demoMode) {
-            this.elements.startBtn.disabled = false;
-            this.elements.positionStatus.textContent = '演示模式';
-            this.elements.positionStatus.classList.add('ready');
-            this.elements.distanceValue.textContent = '2.5';
-            this.elements.statusHeight.classList.add('ready');
-            this.elements.statusHeight.querySelector('.status-value').textContent = 'OK';
-            this.elements.statusAlign.classList.add('ready');
-            this.elements.statusAlign.querySelector('.status-value').textContent = 'OK';
-            this.elements.statusVisibility.classList.add('ready');
-            this.elements.statusVisibility.querySelector('.status-value').textContent = 'OK';
+            // 演示模式 - 模拟检测
+            this.enableDemoMode();
         } else {
             const success = await this.analyzer.startCamera(
                 this.elements.cameraPreview,
                 this.elements.poseCanvas
             );
 
-            if (success) {
-                this.analyzer.startCalibration();
-                this.startCalibrationMonitor();
-            } else {
+            if (!success) {
                 this.demoMode = true;
                 this.elements.demoNotice?.classList.remove('hidden');
-                this.elements.startBtn.disabled = false;
+                this.enableDemoMode();
             }
         }
     }
 
-    startCalibrationMonitor() {
-        this.calibrationInterval = setInterval(() => {
-            if (this.analyzer.calibrationData?.isCalibrated) {
-                this.elements.startBtn.disabled = false;
-            }
-        }, 100);
+    enableDemoMode() {
+        this.personDetected = true;
+        this.readyDetected = true;
+        this.updateDetectionUI();
+        this.elements.startBtn.disabled = false;
+        this.elements.startBtn.classList.add('ready');
+        Voice.speak('已就绪，可以开始');
     }
 
-    updateCalibrationUI(data) {
-        if (data.isCalibrated) {
-            this.elements.positionStatus.textContent = '✓ 位置正确';
-            this.elements.positionStatus.classList.add('ready');
+    onPersonDetected(data) {
+        if (!this.personDetected && data.personDetected) {
+            this.personDetected = true;
+            Voice.speak('已检测到您');
+        }
+        this.updateDetectionUI();
+    }
+
+    onReadyDetected() {
+        if (!this.readyDetected) {
+            this.readyDetected = true;
+            this.updateDetectionUI();
+            Voice.speak('准备就绪');
+            this.showToast('检测到准备姿势，3秒后开始！');
+
+            // 自动开始倒计时
+            if (this.autoStartEnabled) {
+                setTimeout(() => this.startCountdown(), 500);
+            }
+        }
+    }
+
+    updateDetectionUI() {
+        // 更新检测项目状态
+        this.elements.checkPerson.textContent = this.personDetected ? '✓' : '○';
+        this.elements.checkPerson.parentElement.classList.toggle('checked', this.personDetected);
+
+        this.elements.checkReady.textContent = this.readyDetected ? '✓' : '○';
+        this.elements.checkReady.parentElement.classList.toggle('checked', this.readyDetected);
+
+        // 更新状态指示
+        const statusRing = document.querySelector('.status-ring');
+        if (this.readyDetected) {
+            this.elements.statusIcon.textContent = '🎮';
+            this.elements.statusText.textContent = '准备就绪';
+            this.elements.statusText.classList.add('ready');
+            statusRing?.classList.add('ready');
             this.elements.startBtn.disabled = false;
-        } else if (data.visibility > 0.5) {
-            if (!data.isCentered) {
-                this.elements.positionStatus.textContent = '↔ 请居中站';
-            } else if (!data.isGoodDistance) {
-                this.elements.positionStatus.textContent = '↕ 请调整距离';
-            } else {
-                this.elements.positionStatus.textContent = '⏳ 等待稳定...';
-            }
-            this.elements.positionStatus.classList.remove('ready');
+            this.elements.startBtn.classList.add('ready');
+            this.elements.detectHint.textContent = '姿势正确，准备开始';
+        } else if (this.personDetected) {
+            this.elements.statusIcon.textContent = '👤';
+            this.elements.statusText.textContent = '请抬起双臂';
+            this.elements.statusText.classList.remove('ready');
+            statusRing?.classList.remove('ready');
             this.elements.startBtn.disabled = true;
+            this.elements.startBtn.classList.remove('ready');
+            this.elements.detectHint.textContent = '请双手握好跳绳，双臂抬起';
         } else {
-            this.elements.positionStatus.textContent = '👤 未检测到人体';
-            this.elements.positionStatus.classList.remove('ready');
+            this.elements.statusIcon.textContent = '👤';
+            this.elements.statusText.textContent = '检测中...';
+            this.elements.statusText.classList.remove('ready');
+            statusRing?.classList.remove('ready');
             this.elements.startBtn.disabled = true;
-        }
-
-        if (data.personScale > 0) {
-            const distance = (0.5 / data.personScale * 3).toFixed(1);
-            this.elements.distanceValue.textContent = Math.min(9.9, Math.max(0.5, distance));
-        }
-
-        this.elements.statusHeight.classList.toggle('ready', data.isGoodDistance);
-        this.elements.statusHeight.querySelector('.status-value').textContent =
-            data.isGoodDistance ? 'OK' : (data.personScale > 0.3 ? '近' : '远');
-
-        this.elements.statusAlign.classList.toggle('ready', data.isCentered);
-        this.elements.statusAlign.querySelector('.status-value').textContent =
-            data.isCentered ? 'OK' : (data.offsetX < 0.25 ? '偏' : '偏离');
-
-        const visPercent = Math.round(data.visibility * 100);
-        this.elements.statusVisibility.classList.toggle('ready', visPercent > 80);
-        this.elements.statusVisibility.querySelector('.status-value').textContent = visPercent + '%';
-    }
-
-    updateQuickStats() {
-        const stats = Storage.getStats();
-        const best = Storage.getBestRecord();
-        const improvement = Storage.getImprovement();
-
-        this.elements.statBest.textContent = best ? best.count : '--';
-        this.elements.statToday.textContent = stats.todayCount || '0';
-
-        if (improvement) {
-            if (improvement.isImproved) {
-                this.elements.statImprove.textContent = '+' + improvement.diff;
-                this.elements.statImprove.classList.add('up');
-                this.elements.statImprove.classList.remove('down');
-            } else if (improvement.diff < 0) {
-                this.elements.statImprove.textContent = improvement.diff.toString();
-                this.elements.statImprove.classList.add('down');
-                this.elements.statImprove.classList.remove('up');
-            } else {
-                this.elements.statImprove.textContent = '0';
-                this.elements.statImprove.classList.remove('up', 'down');
-            }
-        } else {
-            this.elements.statImprove.textContent = '--';
+            this.elements.startBtn.classList.remove('ready');
+            this.elements.detectHint.textContent = '请进入画面';
         }
     }
 
     switchView(viewName) {
-        const views = ['calibration', 'countdown', 'testing', 'result', 'training', 'history', 'settings'];
+        const views = ['detect', 'testing', 'result', 'training', 'history', 'settings'];
         views.forEach(v => {
             const el = this.elements[v + 'View'];
             if (el) {
@@ -327,8 +323,10 @@ class JumpRopeCoachApp {
         this.currentView = viewName;
     }
 
-    startTest() {
-        if (this.calibrationInterval) clearInterval(this.calibrationInterval);
+    startCountdown() {
+        if (this.countdownInterval) {
+            clearInterval(this.countdownInterval);
+        }
 
         // 保存上次成绩
         const history = Storage.getHistory();
@@ -336,20 +334,22 @@ class JumpRopeCoachApp {
             this.lastCount = history[0].count;
         }
 
-        this.switchView('countdown');
-        this.analyzer?.stopCalibration();
+        this.switchView('detect');
+        this.elements.countdownOverlay.classList.remove('hidden');
 
         let count = 3;
         this.elements.countdownNumber.textContent = count;
         Voice.countdown(count);
 
-        const countdownInterval = setInterval(() => {
+        this.countdownInterval = setInterval(() => {
             count--;
             if (count > 0) {
                 this.elements.countdownNumber.textContent = count;
                 Voice.countdown(count);
             } else {
-                clearInterval(countdownInterval);
+                clearInterval(this.countdownInterval);
+                this.countdownInterval = null;
+                this.elements.countdownOverlay.classList.add('hidden');
                 Voice.testStart();
                 this.startRealTest();
             }
@@ -370,11 +370,10 @@ class JumpRopeCoachApp {
         this.switchView('testing');
         Voice.speak('测试开始');
 
+        const duration = (this.settings.testDuration || 60) * 1000;
         let elapsed = 0;
-        const duration = (this.settings.testDuration || 30) * 1000;
         let count = 0;
         const baseTempo = 150 + Math.random() * 30;
-        const caloriesPerJump = 0.1;
 
         this.demoInterval = setInterval(() => {
             elapsed += 100;
@@ -385,15 +384,17 @@ class JumpRopeCoachApp {
             const dashOffset = 283 - (283 * progress / 100);
             this.elements.progressCircle.style.strokeDashoffset = dashOffset;
 
+            // 模拟跳绳
             if (Math.random() < 0.12) {
                 count++;
                 this.elements.liveCount.textContent = count;
-                this.updateCalories(count * caloriesPerJump);
+                this.updateCalories(count * 0.1);
             }
 
+            // 模拟BPM
             const tempo = baseTempo + Math.sin(elapsed / 2000) * 10;
             this.elements.liveTempo.textContent = Math.round(tempo);
-            this.drawWaveform(Math.sin(elapsed / 100) * 30 + Math.random() * 10);
+            this.drawWaveform(Math.sin(elapsed / 100) * 30);
 
             // 语音时间提醒
             if (remaining === 10 || remaining === 5 || remaining === 3) {
@@ -411,7 +412,7 @@ class JumpRopeCoachApp {
     }
 
     startTestMonitor() {
-        this.elements.testTimerDisplay.textContent = this.settings.testDuration || 30;
+        const duration = this.settings.testDuration || 60;
 
         const updateInterval = setInterval(() => {
             if (!this.analyzer?.isRunning) {
@@ -420,16 +421,15 @@ class JumpRopeCoachApp {
             }
 
             const elapsed = Date.now() - this.analyzer.startTime;
-            const duration = (this.settings.testDuration || 30) * 1000;
-            const remaining = Math.max(0, Math.ceil((duration - elapsed) / 1000));
+            const remaining = Math.max(0, Math.ceil((duration * 1000 - elapsed) / 1000));
             this.elements.testTimerDisplay.textContent = remaining;
 
-            const progress = (elapsed / duration) * 100;
+            const progress = (elapsed / (duration * 1000)) * 100;
             this.elements.progressCircle.style.strokeDashoffset = 283 - (283 * progress / 100);
 
             const live = this.analyzer.getLiveData();
             this.elements.liveTempo.textContent = live.tempo || '--';
-            this.drawWaveform(Math.sin(elapsed / 100) * 30 + Math.random() * 10);
+            this.drawWaveform(Math.sin(elapsed / 100) * 30);
 
             if (remaining === 10 || remaining === 5 || remaining === 3) {
                 Voice.timeReminder(remaining);
@@ -437,15 +437,9 @@ class JumpRopeCoachApp {
         }, 100);
     }
 
-    get duration() {
-        return (this.settings.testDuration || 30) * 1000;
-    }
-
     updateCalories(calories) {
         this.elements.liveCalories.textContent = Math.round(calories);
     }
-
-    updateLiveMetrics(data) {}
 
     drawWaveform(value) {
         const canvas = this.elements.waveformCanvas;
@@ -465,12 +459,6 @@ class JumpRopeCoachApp {
             else ctx.lineTo(x, y);
         }
         ctx.stroke();
-
-        ctx.strokeStyle = 'rgba(0, 240, 255, 0.3)';
-        ctx.beginPath();
-        ctx.moveTo(0, height / 2);
-        ctx.lineTo(width, height / 2);
-        ctx.stroke();
     }
 
     generateDemoMetrics(count) {
@@ -487,7 +475,6 @@ class JumpRopeCoachApp {
     }
 
     showResults(metrics) {
-        // 保存结果
         const diagnosis = diagnose(metrics);
         const record = Storage.saveResult({
             count: metrics.count,
@@ -498,7 +485,7 @@ class JumpRopeCoachApp {
 
         this.lastResult = record;
 
-        // 显示进步
+        // 进步提示
         const improvement = Storage.getImprovement();
         if (improvement && this.lastCount !== null) {
             this.elements.improvementBanner.classList.remove('hidden', 'down');
@@ -572,10 +559,30 @@ class JumpRopeCoachApp {
         this.elements.exerciseIcon.textContent = content.icon;
         this.elements.exerciseTitle.textContent = content.title;
         this.elements.exerciseDesc.textContent = content.description;
+        this.elements.demoEmoji.textContent = content.icon;
+
+        // 更新三步指导
+        const steps = this.getTrainingSteps(code);
+        this.elements.step1.textContent = steps[0];
+        this.elements.step2.textContent = steps[1];
+        this.elements.step3.textContent = steps[2];
 
         // 更新训练提示
-        const tips = this.getTrainingTips(code);
-        this.elements.trainingTips.innerHTML = `<p>💡 ${tips}</p>`;
+        this.elements.trainingTip.textContent = '💡 ' + this.getTrainingTips(code);
+    }
+
+    getTrainingSteps(code) {
+        const steps = {
+            'jump_high': ['脚尖轻点地面', '身体上下幅度<5cm', '膝盖微屈缓冲'],
+            'arm_spread': ['肘部贴近身体', '双手靠近中线', '保持肩部放松'],
+            'wrist_weak': ['手腕快速转动', '手臂保持固定', '感受前臂发力'],
+            'rhythm_unstable': ['跟随节拍', '保持均匀呼吸', '不要忽快忽慢'],
+            'fatigue_drop': ['前15秒控制节奏', '留体力给后半段', '匀速冲刺'],
+            'heavy_landing': ['前脚掌先着地', '膝盖微屈缓冲', '落地声音要轻'],
+            'break_frequent': ['放慢速度', '确保动作完整', '先求稳再求快'],
+            'comprehensive': ['专注动作质量', '跟随节拍练习', '循序渐进加速']
+        };
+        return steps[code] || steps['comprehensive'];
     }
 
     getTrainingTips(code) {
@@ -606,9 +613,8 @@ class JumpRopeCoachApp {
         const data = Storage.getProgressData(7);
         const maxCount = Math.max(...data.filter(d => d.best).map(d => d.best), 100);
 
-        // 绘制网格
+        // 网格
         ctx.strokeStyle = 'rgba(0, 240, 255, 0.1)';
-        ctx.lineWidth = 1;
         for (let i = 0; i <= 4; i++) {
             const y = padding + (height - 2 * padding) * i / 4;
             ctx.beginPath();
@@ -617,9 +623,9 @@ class JumpRopeCoachApp {
             ctx.stroke();
         }
 
-        // 绘制折线
+        // 折线
         const points = data.map((d, i) => ({
-            x: padding + (width - 2 * padding) * i / (data.length - 1),
+            x: padding + (width - 2 * padding) * i / (data.length - 1 || 1),
             y: d.best ? height - padding - (d.best / maxCount) * (height - 2 * padding) : null
         }));
 
@@ -628,7 +634,7 @@ class JumpRopeCoachApp {
         ctx.beginPath();
 
         let started = false;
-        points.forEach((p, i) => {
+        points.forEach((p) => {
             if (p.y !== null) {
                 if (!started) {
                     ctx.moveTo(p.x, p.y);
@@ -640,14 +646,13 @@ class JumpRopeCoachApp {
         });
         ctx.stroke();
 
-        // 绘制点
+        // 点
         points.forEach((p) => {
             if (p.y !== null) {
                 ctx.fillStyle = '#00f0ff';
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
                 ctx.fill();
-
                 ctx.fillStyle = '#0a0a1a';
                 ctx.beginPath();
                 ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
@@ -655,7 +660,7 @@ class JumpRopeCoachApp {
             }
         });
 
-        // 绘制日期
+        // 日期
         ctx.fillStyle = '#8080a0';
         ctx.font = '10px sans-serif';
         ctx.textAlign = 'center';
@@ -701,48 +706,51 @@ class JumpRopeCoachApp {
 
         Voice.speak('训练完成');
         this.showToast('训练完成！');
-        setTimeout(() => this.resetToCalibration(), 1500);
+        setTimeout(() => this.resetToDetect(), 1500);
     }
 
-    resetToCalibration() {
+    resetToDetect() {
+        // 重置状态
+        this.personDetected = false;
+        this.readyDetected = false;
+
+        // 重置UI
         this.elements.liveCount.textContent = '0';
         this.elements.liveTempo.textContent = '--';
         this.elements.liveCalories.textContent = '0';
         this.elements.progressCircle.style.strokeDashoffset = 283;
+        this.elements.testTimerDisplay.textContent = this.settings.testDuration || 60;
 
-        this.switchView('calibration');
-
-        if (this.analyzer) {
-            this.analyzer.stop();
-            this.analyzer.startCalibration();
-            this.startCalibrationMonitor();
+        // 重置检测状态
+        if (this.demoMode) {
+            this.enableDemoMode();
+        } else {
+            this.updateDetectionUI();
         }
+
+        this.switchView('detect');
     }
 
     shareResult() {
         if (!this.lastResult) return;
 
         const text = `AI提分教练测试结果\n` +
-            `📊 成绩：${this.lastResult.count}次/30秒\n` +
+            `📊 成绩：${this.lastResult.count}次\n` +
             `⭐ 等级：${this.lastResult.grade}\n` +
             `💡 ${this.lastResult.diagnosis?.diagnosis || '继续加油！'}\n\n` +
-            `30秒诊断，3分钟修正，7天提分`;
+            `AI提分教练 - 60秒测试 · 即时诊断`;
 
         if (navigator.share) {
             navigator.share({ text }).catch(() => {
-                this.copyToClipboard(text);
+                navigator.clipboard.writeText(text).then(() => {
+                    this.showToast('成绩已复制');
+                });
             });
         } else {
-            this.copyToClipboard(text);
+            navigator.clipboard.writeText(text).then(() => {
+                this.showToast('成绩已复制');
+            });
         }
-    }
-
-    copyToClipboard(text) {
-        navigator.clipboard.writeText(text).then(() => {
-            this.showToast('成绩已复制到剪贴板');
-        }).catch(() => {
-            this.showToast('复制失败');
-        });
     }
 
     // 教师端
@@ -757,7 +765,6 @@ class JumpRopeCoachApp {
 
     updateTeacherStats() {
         const stats = Storage.getStats();
-        const history = Storage.getHistory();
 
         this.elements.teacherToday.textContent = stats.todayCount;
         this.elements.teacherAvg.textContent = stats.avg;
@@ -806,7 +813,6 @@ class JumpRopeCoachApp {
 
         this.elements.groupList.innerHTML = Object.entries(groups).map(([problem, group]) => {
             const count = distribution[problem] || 0;
-            const members = history.filter(r => r.diagnosis?.mainProblemCode === problem).map(r => `第${Math.ceil(Math.random() * 30)}排`);
             return `
                 <div class="group-item">
                     <span class="group-tag ${group.class}">${group.tag}</span>
@@ -819,6 +825,14 @@ class JumpRopeCoachApp {
         }).join('');
     }
 
+    updateQuickStats() {
+        const stats = Storage.getStats();
+        const best = Storage.getBestRecord();
+        const improvement = Storage.getImprovement();
+
+        // 检测页面没有快捷统计了，不需要更新
+    }
+
     // 历史记录
     showHistory() {
         this.updateHistoryDisplay();
@@ -826,7 +840,7 @@ class JumpRopeCoachApp {
     }
 
     hideHistory() {
-        this.switchView('calibration');
+        this.switchView('detect');
     }
 
     updateHistoryDisplay() {
@@ -837,10 +851,8 @@ class JumpRopeCoachApp {
         this.elements.historyBest.textContent = stats.best || '--';
         this.elements.historyAvg.textContent = stats.avg;
 
-        // 绘制历史曲线
         this.drawHistoryChart();
 
-        // 记录列表
         this.elements.historyRecords.innerHTML = history.slice(0, 20).map((record, index) => {
             const time = new Date(record.timestamp);
             const timeStr = `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}`;
@@ -891,11 +903,6 @@ class JumpRopeCoachApp {
             ctx.moveTo(padding, y);
             ctx.lineTo(width - padding, y);
             ctx.stroke();
-
-            ctx.fillStyle = '#8080a0';
-            ctx.font = '10px sans-serif';
-            ctx.textAlign = 'right';
-            ctx.fillText(Math.round(maxCount * (1 - i / 4)), padding - 5, y + 3);
         }
 
         // 折线
@@ -941,7 +948,6 @@ class JumpRopeCoachApp {
         if (confirm('确定要清除所有历史记录吗？')) {
             Storage.clearHistory();
             this.updateHistoryDisplay();
-            this.updateQuickStats();
             this.showToast('历史已清除');
         }
     }
@@ -952,7 +958,7 @@ class JumpRopeCoachApp {
     }
 
     hideSettings() {
-        this.switchView('calibration');
+        this.switchView('detect');
     }
 
     showToast(message) {

@@ -714,6 +714,32 @@ input:checked + .slider:before {
     font-size: 14px;
 }
 
+/* ===== 检测页面 ===== */
+.view-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.cyber-title {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 8px;
+}
+
+.title-icon {
+    font-size: 28px;
+}
+
+.view-subtitle {
+    color: var(--text-dim);
+    font-size: 14px;
+}
+
 /* 摄像头区域 */
 .camera-wrapper {
     position: relative;
@@ -739,6 +765,148 @@ input:checked + .slider:before {
     width: 100%;
     height: 100%;
 }
+
+/* 检测覆盖层 */
+.detect-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+/* 检测状态指示器 */
+.detect-status {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-ring {
+    width: 60px;
+    height: 60px;
+    border: 3px solid var(--border);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.5);
+    animation: status-pulse 2s ease-in-out infinite;
+}
+
+.status-ring.ready {
+    border-color: var(--accent);
+    background: rgba(0, 255, 136, 0.2);
+}
+
+@keyframes status-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.05); opacity: 1; }
+}
+
+.ring-icon {
+    font-size: 28px;
+}
+
+.status-text {
+    font-size: 14px;
+    color: var(--text-dim);
+    background: rgba(0, 0, 0, 0.7);
+    padding: 4px 12px;
+    border-radius: 12px;
+}
+
+.status-text.ready {
+    color: var(--accent);
+}
+
+/* 检测项目列表 */
+.detect-items {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 80%;
+}
+
+.detect-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    transition: all 0.3s ease;
+}
+
+.detect-item.checked {
+    border-color: var(--accent);
+    background: rgba(0, 255, 136, 0.15);
+}
+
+.detect-icon {
+    font-size: 20px;
+    margin-right: 12px;
+}
+
+.detect-label {
+    flex: 1;
+    font-size: 14px;
+}
+
+.detect-check {
+    font-size: 18px;
+    color: var(--text-dim);
+    transition: all 0.3s ease;
+}
+
+.detect-item.checked .detect-check {
+    color: var(--accent);
+}
+
+/* 倒计时覆盖层 */
+.countdown-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#countdown-number {
+    font-size: 120px;
+    font-weight: 800;
+    color: var(--primary);
+    text-shadow: 0 0 50px var(--glow), 0 0 100px var(--glow);
+    animation: countdown-bounce 1s ease-in-out infinite;
+}
+
+@keyframes countdown-bounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+}
+
+.hint-text {
+    text-align: center;
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--text-dim);
+}
+
+/* 检测页面结束 */
 
 /* 人像引导 */
 .silhouette-overlay {

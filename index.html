@@ -25,80 +25,48 @@
 
         <!-- 主内容区 -->
         <main id="main-content">
-            <!-- 1. 位置校准页面 -->
-            <section id="calibration-view" class="view active">
+            <!-- 1. 检测页面 -->
+            <section id="detect-view" class="view active">
                 <div class="view-header">
                     <h2 class="cyber-title">
-                        <span class="title-icon">👤</span>
-                        位置校准
+                        <span class="title-icon">📷</span>
+                        准备开始
                     </h2>
-                    <p class="view-subtitle">请站在绿色虚线人像内，确保全身可见</p>
+                    <p class="view-subtitle" id="detect-hint">请进入画面，握好跳绳</p>
                 </div>
 
                 <div class="camera-wrapper">
                     <video id="camera-preview" autoplay playsinline></video>
                     <canvas id="pose-canvas"></canvas>
 
-                    <!-- 虚拟人像引导 -->
-                    <div class="silhouette-overlay">
-                        <svg viewBox="0 0 200 400" class="silhouette-svg">
-                            <ellipse cx="100" cy="45" rx="30" ry="35" class="sil-head"/>
-                            <rect x="70" y="80" width="60" height="100" rx="10" class="sil-body"/>
-                            <rect x="45" y="85" width="25" height="80" rx="5" class="sil-arm"/>
-                            <rect x="130" y="85" width="25" height="80" rx="5" class="sil-arm"/>
-                            <rect x="75" y="180" width="22" height="120" rx="5" class="sil-leg"/>
-                            <rect x="103" y="180" width="22" height="120" rx="5" class="sil-leg"/>
-                        </svg>
-                        <div class="position-indicator">
-                            <span id="position-status">等待检测...</span>
+                    <!-- 检测状态叠加 -->
+                    <div class="detect-overlay">
+                        <!-- 状态指示 -->
+                        <div class="detect-status" id="detect-status">
+                            <div class="status-ring">
+                                <span class="ring-icon" id="status-icon">👤</span>
+                            </div>
+                            <span class="status-text" id="status-text">检测中...</span>
                         </div>
-                    </div>
 
-                    <!-- 距离雷达 -->
-                    <div class="distance-radar">
-                        <div class="radar-ring"></div>
-                        <div class="radar-ring"></div>
-                        <div class="radar-ring"></div>
-                        <div class="radar-center">
-                            <span id="distance-value">--</span>
-                            <span class="radar-unit">m</span>
+                        <!-- 检测项目 -->
+                        <div class="detect-items">
+                            <div class="detect-item" id="detect-person">
+                                <span class="detect-icon">👤</span>
+                                <span class="detect-label">人体检测</span>
+                                <span class="detect-check" id="check-person">○</span>
+                            </div>
+                            <div class="detect-item" id="detect-ready">
+                                <span class="detect-icon">🎮</span>
+                                <span class="detect-label">准备就绪</span>
+                                <span class="detect-check" id="check-ready">○</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="alignment-grid"></div>
-                </div>
 
-                <!-- 校准状态 -->
-                <div class="calibration-status">
-                    <div class="status-item" id="status-height">
-                        <span class="status-icon">📏</span>
-                        <span class="status-label">身高检测</span>
-                        <span class="status-value">--</span>
-                    </div>
-                    <div class="status-item" id="status-align">
-                        <span class="status-icon">🎯</span>
-                        <span class="status-label">居中程度</span>
-                        <span class="status-value">--</span>
-                    </div>
-                    <div class="status-item" id="status-visibility">
-                        <span class="status-icon">👁</span>
-                        <span class="status-label">骨骼识别</span>
-                        <span class="status-value">--</span>
-                    </div>
-                </div>
-
-                <!-- 历史进步 -->
-                <div class="quick-stats" id="quick-stats">
-                    <div class="quick-stat">
-                        <span class="quick-value" id="stat-best">--</span>
-                        <span class="quick-label">最佳</span>
-                    </div>
-                    <div class="quick-stat">
-                        <span class="quick-value" id="stat-improve">--</span>
-                        <span class="quick-label">进步</span>
-                    </div>
-                    <div class="quick-stat">
-                        <span class="quick-value" id="stat-today">--</span>
-                        <span class="quick-label">今日</span>
+                        <!-- 倒计时 -->
+                        <div class="countdown-overlay hidden" id="countdown-overlay">
+                            <span id="countdown-number">3</span>
+                        </div>
                     </div>
                 </div>
 
@@ -107,23 +75,14 @@
                     <span class="btn-text">🎯 开始测试</span>
                 </button>
 
-                <p class="hint-text">确保站在虚线人像框内，全身可见</p>
+                <p class="hint-text" id="hint-text">请站到摄像头前，双手握好跳绳</p>
             </section>
 
-            <!-- 2. 倒计时页面 -->
-            <section id="countdown-view" class="view hidden">
-                <div class="countdown-display">
-                    <span id="countdown-number">3</span>
-                </div>
-                <div class="countdown-label">准备开始</div>
-                <div class="scan-line"></div>
-            </section>
-
-            <!-- 3. 测试进行中 -->
+            <!-- 2. 测试进行中 -->
             <section id="testing-view" class="view hidden">
                 <div class="test-header">
                     <div class="test-timer">
-                        <span id="test-timer-display">30</span>
+                        <span id="test-timer-display">60</span>
                         <span class="timer-label">秒</span>
                     </div>
                     <div class="test-progress">
@@ -155,14 +114,14 @@
                     <canvas id="waveform-canvas" width="300" height="60"></canvas>
                 </div>
 
-                <!-- 实时语音提示 -->
+                <!-- 语音提示 -->
                 <div class="voice-indicator" id="voice-indicator">
                     <span class="voice-icon">🔊</span>
                     <span id="voice-text">测试开始</span>
                 </div>
             </section>
 
-            <!-- 4. 诊断结果 -->
+            <!-- 3. 诊断结果 -->
             <section id="result-view" class="view hidden">
                 <!-- 进步提示 -->
                 <div class="improvement-banner" id="improvement-banner">
@@ -173,7 +132,7 @@
                 <div class="result-header">
                     <div class="score-display">
                         <span class="score-value" id="result-count">0</span>
-                        <span class="score-unit">次/30秒</span>
+                        <span class="score-unit">次/60秒</span>
                     </div>
                     <div class="score-grade" id="result-grade">B</div>
                 </div>
@@ -194,27 +153,27 @@
                     </h3>
                     <div class="metrics-grid">
                         <div class="metric-row">
-                            <span class="metric-name">平均节奏</span>
+                            <span class="metricname">平均节奏</span>
                             <div class="metric-bar"><div class="metric-fill" id="bar-tempo"></div></div>
                             <span class="metric-val" id="metric-tempo">--</span>
                         </div>
                         <div class="metric-row">
-                            <span class="metric-name">节奏稳定</span>
+                            <span class="metricname">节奏稳定</span>
                             <div class="metric-bar"><div class="metric-fill" id="bar-stability"></div></div>
                             <span class="metric-val" id="metric-stability">--</span>
                         </div>
                         <div class="metric-row">
-                            <span class="metric-name">起跳高度</span>
+                            <span class="metricname">起跳高度</span>
                             <div class="metric-bar"><div class="metric-fill" id="bar-jump"></div></div>
                             <span class="metric-val" id="metric-jump">--</span>
                         </div>
                         <div class="metric-row">
-                            <span class="metric-name">手臂外展</span>
+                            <span class="metricname">手臂外展</span>
                             <div class="metric-bar"><div class="metric-fill" id="bar-arm"></div></div>
                             <span class="metric-val" id="metric-arm">--</span>
                         </div>
                         <div class="metric-row">
-                            <span class="metric-name">后半段掉速</span>
+                            <span class="metricname">后半段掉速</span>
                             <div class="metric-bar"><div class="metric-fill" id="bar-fatigue"></div></div>
                             <span class="metric-val" id="metric-fatigue">--</span>
                         </div>
@@ -240,15 +199,15 @@
                         <div class="guide-steps">
                             <div class="guide-step">
                                 <span class="step-num">1</span>
-                                <span class="step-text">保持肘部贴近身体</span>
+                                <span class="step-text" id="step-1">保持肘部贴近身体</span>
                             </div>
                             <div class="guide-step">
                                 <span class="step-num">2</span>
-                                <span class="step-text">手腕发力带动绳子</span>
+                                <span class="step-text" id="step-2">手腕发力带动绳子</span>
                             </div>
                             <div class="guide-step">
                                 <span class="step-num">3</span>
-                                <span class="step-text">脚尖轻点地面</span>
+                                <span class="step-text" id="step-3">脚尖轻点地面</span>
                             </div>
                         </div>
                     </div>
@@ -264,7 +223,7 @@
                         <span class="title-bar"></span>
                         进步曲线
                     </h3>
-                    <div class="progress-chart" id="progress-chart">
+                    <div class="progress-chart">
                         <canvas id="chart-canvas" width="350" height="120"></canvas>
                     </div>
                 </div>
@@ -285,7 +244,7 @@
                 </div>
             </section>
 
-            <!-- 5. 训练中 -->
+            <!-- 4. 训练中 -->
             <section id="training-view" class="view hidden">
                 <div class="training-header">
                     <h2>训练中</h2>
@@ -300,9 +259,9 @@
                     </div>
 
                     <!-- 训练动作 -->
-                    <div class="exercise-demo" id="exercise-demo">
+                    <div class="exercise-demo">
                         <div class="demo-visual">
-                            <span class="demo-emoji">🦘</span>
+                            <span class="demo-emoji" id="demo-emoji">🦘</span>
                         </div>
                     </div>
 
@@ -314,15 +273,15 @@
                     </div>
 
                     <!-- 训练提示 -->
-                    <div class="training-tips" id="training-tips">
-                        <p>💡 专注动作质量，不要追求速度</p>
+                    <div class="training-tips">
+                        <p id="training-tip">💡 专注动作质量，不要追求速度</p>
                     </div>
                 </div>
 
                 <button id="skip-training-btn" class="cyber-btn ghost">跳过训练</button>
             </section>
 
-            <!-- 6. 历史记录页面 -->
+            <!-- 5. 历史记录页面 -->
             <section id="history-view" class="view hidden">
                 <div class="view-header">
                     <h2 class="cyber-title">
@@ -360,7 +319,7 @@
                 <button id="back-from-history" class="cyber-btn secondary">返回</button>
             </section>
 
-            <!-- 7. 设置页面 -->
+            <!-- 6. 设置页面 -->
             <section id="settings-view" class="view hidden">
                 <div class="view-header">
                     <h2 class="cyber-title">
@@ -387,27 +346,16 @@
                             <span class="setting-name">测试时长</span>
                         </div>
                         <select id="duration-select" class="setting-select">
-                            <option value="30" selected>30秒</option>
-                            <option value="60">60秒</option>
+                            <option value="30">30秒</option>
+                            <option value="60" selected>60秒</option>
                             <option value="120">120秒</option>
                         </select>
-                    </div>
-
-                    <div class="setting-item">
-                        <div class="setting-info">
-                            <span class="setting-icon">🌙</span>
-                            <span class="setting-name">深色模式</span>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" id="darkmode-toggle" checked>
-                            <span class="slider"></span>
-                        </label>
                     </div>
                 </div>
 
                 <div class="settings-about">
-                    <p>AI提分教练 v1.0</p>
-                    <p>30秒诊断 · 3分钟修正 · 7天提分</p>
+                    <p>AI提分教练 v2.0</p>
+                    <p>60秒测试 · 即时诊断 · 针对性训练</p>
                 </div>
 
                 <button id="back-from-settings" class="cyber-btn secondary">返回</button>

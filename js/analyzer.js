@@ -1,14 +1,13 @@
 /**
- * 跳绳分析器 - 赛博朋克风格
- * 使用 MediaPipe Pose 提取人体关键点，分析跳绳动作
+ * 跳绳分析器 v3.0
+ * 简化版：检测人体 → 识别准备 → 自动开始
  */
 
 class JumpRopeAnalyzer {
     constructor() {
         this.isRunning = false;
-        this.isCalibrating = false;
         this.startTime = 0;
-        this.duration = 30000;
+        this.duration = 60000; // 默认60秒
         this.pose = null;
         this.camera = null;
 
@@ -27,17 +26,11 @@ class JumpRopeAnalyzer {
         this.airThreshold = 0.02;
         this.groundLevel = null;
 
-        this.calibrationData = {
-            isCalibrated: false,
-            personCenterX: 0,
-            personCenterY: 0,
-            personScale: 0,
-            visibility: 0
-        };
-
         this.potentialBreaks = [];
 
-        this.onCalibrationUpdate = null;
+        // 回调
+        this.onPersonDetected = null;
+        this.onReadyDetected = null;
         this.onCountUpdate = null;
         this.onMetricsUpdate = null;
         this.onComplete = null;
@@ -82,30 +75,15 @@ class JumpRopeAnalyzer {
         }
     }
 
-    /**
-     * 开始校准
-     */
-    startCalibration() {
-        this.isCalibrating = true;
-        this.calibrationData = {
-            isCalibrated: false,
-            personCenterX: 0,
-            personCenterY: 0,
-            personScale: 0,
-            visibility: 0
-        };
+    setDuration(seconds) {
+        this.duration = seconds * 1000;
     }
 
     /**
-     * 停止校准
+     * 开始测试
      */
-    stopCalibration() {
-        this.isCalibrating = false;
-    }
-
     start() {
         this.isRunning = true;
-        this.isCalibrating = false;
         this.startTime = Date.now();
         this.jumpCount = 0;
         this.breakCount = 0;
@@ -131,25 +109,27 @@ class JumpRopeAnalyzer {
         // 始终绘制姿态
         this.drawPose(results);
 
-        // 校准模式
-        if (this.isCalibrating && results.poseLandmarks) {
-            this.processCalibration(results.poseLandmarks);
+        // 检测模式（测试未开始）
+        if (!this.isRunning && results.poseLandmarks) {
+            const data = this.analyzeForDetection(results.poseLandmarks);
+            if (data.personDetected && this.onPersonDetected) {
+                this.onPersonDetected(data);
+            }
+            if (data.readyDetected && this.onReadyDetected) {
+                this.onReadyDetected();
+            }
         }
 
         // 测试模式
-        if (this.isRunning) {
+        if (this.isRunning && results.poseLandmarks) {
             const elapsed = Date.now() - this.startTime;
 
-            if (results.poseLandmarks) {
-                this.processLandmarks(results.poseLandmarks, elapsed);
-            }
+            this.processLandmarks(results.poseLandmarks, elapsed);
 
-            // 更新实时回调
             if (this.onMetricsUpdate) {
                 this.onMetricsUpdate(this.getLiveData());
             }
 
-            // 时间到
             if (elapsed >= this.duration) {
                 this.stop();
                 if (this.onComplete) {
@@ -160,63 +140,52 @@ class JumpRopeAnalyzer {
     }
 
     /**
-     * 处理校准
+     * 分析是否检测到人体和准备状态
      */
-    processCalibration(landmarks) {
+    analyzeForDetection(landmarks) {
         const keyPoints = this.getVisibleKeyPoints(landmarks);
-        if (keyPoints.length < 10) {
-            this.calibrationData.visibility = keyPoints.length / 17;
-            if (this.onCalibrationUpdate) {
-                this.onCalibrationUpdate(this.calibrationData);
-            }
-            return;
+        const visibility = keyPoints.length / 17;
+
+        // 检测人体
+        const personDetected = visibility > 0.6;
+
+        // 检测准备状态：躯干直立，手臂抬起
+        let readyDetected = false;
+        if (personDetected) {
+            const leftShoulder = landmarks[11];
+            const rightShoulder = landmarks[12];
+            const leftElbow = landmarks[13];
+            const rightElbow = landmarks[14];
+            const leftWrist = landmarks[15];
+            const rightWrist = landmarks[16];
+
+            // 手臂抬起检测（手腕高于肩膀）
+            const leftArmUp = leftWrist.y < leftShoulder.y - 0.05;
+            const rightArmUp = rightWrist.y < rightShoulder.y - 0.05;
+            const armsRaised = leftArmUp && rightArmUp;
+
+            // 躯干直立检测
+            const leftHip = landmarks[23];
+            const rightHip = landmarks[24];
+            const torsoUpright = Math.abs(leftShoulder.y - leftHip.y) > 0.25;
+
+            readyDetected = armsRaised && torsoUpright;
         }
 
-        // 计算人体中心
-        let sumX = 0, sumY = 0;
-        keyPoints.forEach(p => {
-            sumX += p.x;
-            sumY += p.y;
-        });
-
-        const centerX = sumX / keyPoints.length;
-        const centerY = sumY / keyPoints.length;
-
-        // 计算人体尺度（基于身高比例）
-        const headY = landmarks[0].y;
-        const footY = Math.max(landmarks[27].y, landmarks[28].y);
-        const scale = footY - headY;
-
-        // 检查是否居中（理想中心是0.5）
-        const offsetX = Math.abs(centerX - 0.5);
-        const offsetY = Math.abs(centerY - 0.4); // 稍微偏上
-
-        this.calibrationData = {
-            isCalibrated: keyPoints.length >= 15 && offsetX < 0.15 && offsetY < 0.1,
-            personCenterX: centerX,
-            personCenterY: centerY,
-            personScale: scale,
-            visibility: keyPoints.length / 17,
-            offsetX: offsetX,
-            offsetY: offsetY,
-            isCentered: offsetX < 0.15,
-            isGoodDistance: scale > 0.3 && scale < 0.6
+        return {
+            personDetected,
+            readyDetected,
+            visibility: Math.round(visibility * 100),
+            keyPointsCount: keyPoints.length
         };
-
-        if (this.onCalibrationUpdate) {
-            this.onCalibrationUpdate(this.calibrationData);
-        }
     }
 
-    /**
-     * 获取可见的关键点
-     */
     getVisibleKeyPoints(landmarks) {
         return landmarks.filter(p => p.visibility > 0.5);
     }
 
     /**
-     * 赛博朋克风格绘制姿态
+     * 绘制姿态 - 赛博朋克风格
      */
     drawPose(results) {
         if (!this.canvasElement) return;
@@ -228,36 +197,28 @@ class JumpRopeAnalyzer {
         ctx.clearRect(0, 0, this.canvasElement.width, this.canvasElement.height);
 
         if (results.poseLandmarks) {
-            // 绘制发光效果
+            // 发光效果
             this.drawGlow(ctx, results.poseLandmarks);
-            // 绘制连接线
+            // 连接线
             this.drawConnections(ctx, results.poseLandmarks);
-            // 绘制关键点
+            // 关键点
             this.drawLandmarks(ctx, results.poseLandmarks);
         }
     }
 
     drawGlow(ctx, landmarks) {
         ctx.shadowColor = '#00f0ff';
-        ctx.shadowBlur = 20;
+        ctx.shadowBlur = 15;
 
-        const keyPoints = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28];
-        keyPoints.forEach((idx) => {
+        [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28].forEach(idx => {
             const point = landmarks[idx];
             if (point && point.visibility > 0.5) {
-                ctx.fillStyle = 'rgba(0, 240, 255, 0.3)';
+                ctx.fillStyle = 'rgba(0, 240, 255, 0.2)';
                 ctx.beginPath();
-                ctx.arc(
-                    point.x * this.canvasElement.width,
-                    point.y * this.canvasElement.height,
-                    15,
-                    0,
-                    2 * Math.PI
-                );
+                ctx.arc(point.x * this.canvasElement.width, point.y * this.canvasElement.height, 12, 0, Math.PI * 2);
                 ctx.fill();
             }
         });
-
         ctx.shadowBlur = 0;
     }
 
@@ -273,62 +234,37 @@ class JumpRopeAnalyzer {
         ];
 
         connections.forEach(([start, end, color]) => {
-            const startPoint = landmarks[start];
-            const endPoint = landmarks[end];
-
-            if (startPoint && endPoint && startPoint.visibility > 0.5 && endPoint.visibility > 0.5) {
+            const s = landmarks[start], e = landmarks[end];
+            if (s && e && s.visibility > 0.5 && e.visibility > 0.5) {
                 ctx.strokeStyle = color;
                 ctx.lineWidth = 3;
                 ctx.lineCap = 'round';
                 ctx.beginPath();
-                ctx.moveTo(startPoint.x * this.canvasElement.width, startPoint.y * this.canvasElement.height);
-                ctx.lineTo(endPoint.x * this.canvasElement.width, endPoint.y * this.canvasElement.height);
+                ctx.moveTo(s.x * this.canvasElement.width, s.y * this.canvasElement.height);
+                ctx.lineTo(e.x * this.canvasElement.width, e.y * this.canvasElement.height);
                 ctx.stroke();
             }
         });
     }
 
     drawLandmarks(ctx, landmarks) {
-        const keyPoints = [
-            { idx: 11, color: '#00f0ff' },
-            { idx: 12, color: '#00f0ff' },
-            { idx: 13, color: '#00ff88' },
-            { idx: 14, color: '#00ff88' },
-            { idx: 15, color: '#00ff88' },
-            { idx: 16, color: '#00ff88' },
-            { idx: 23, color: '#ff00aa' },
-            { idx: 24, color: '#ff00aa' },
-            { idx: 25, color: '#ffaa00' },
-            { idx: 26, color: '#ffaa00' },
-            { idx: 27, color: '#ffaa00' },
-            { idx: 28, color: '#ffaa00' }
-        ];
+        const colors = {
+            11: '#00f0ff', 12: '#00f0ff',
+            13: '#00ff88', 14: '#00ff88', 15: '#00ff88', 16: '#00ff88',
+            23: '#ff00aa', 24: '#ff00aa',
+            25: '#ffaa00', 26: '#ffaa00', 27: '#ffaa00', 28: '#ffaa00'
+        };
 
-        keyPoints.forEach(({ idx, color }) => {
+        Object.entries(colors).forEach(([idx, color]) => {
             const point = landmarks[idx];
             if (point && point.visibility > 0.5) {
-                // 外圈
                 ctx.fillStyle = color;
                 ctx.beginPath();
-                ctx.arc(
-                    point.x * this.canvasElement.width,
-                    point.y * this.canvasElement.height,
-                    6,
-                    0,
-                    2 * Math.PI
-                );
+                ctx.arc(point.x * this.canvasElement.width, point.y * this.canvasElement.height, 5, 0, Math.PI * 2);
                 ctx.fill();
-
-                // 内圈
-                ctx.fillStyle = '#ffffff';
+                ctx.fillStyle = '#fff';
                 ctx.beginPath();
-                ctx.arc(
-                    point.x * this.canvasElement.width,
-                    point.y * this.canvasElement.height,
-                    3,
-                    0,
-                    2 * Math.PI
-                );
+                ctx.arc(point.x * this.canvasElement.width, point.y * this.canvasElement.height, 2, 0, Math.PI * 2);
                 ctx.fill();
             }
         });
@@ -346,6 +282,7 @@ class JumpRopeAnalyzer {
 
         this.timestamps.push(timestamp);
 
+        // 跳跃检测
         if (leftAnkle.visibility > 0.5 && rightAnkle.visibility > 0.5) {
             const ankleHeight = (leftAnkle.y + rightAnkle.y) / 2;
             this.jumpHeights.push(ankleHeight);
@@ -357,16 +294,15 @@ class JumpRopeAnalyzer {
             this.detectJump(ankleHeight, timestamp);
         }
 
+        // 髋部高度
         if (leftHip.visibility > 0.5 && rightHip.visibility > 0.5) {
-            const hipHeight = (leftHip.y + rightHip.y) / 2;
-            this.hipHeights.push({ time: timestamp, height: hipHeight });
+            this.hipHeights.push((leftHip.y + rightHip.y) / 2);
         }
 
+        // 手腕轨迹
         if (leftWrist.visibility > 0.5 && rightWrist.visibility > 0.5 && leftShoulder.visibility > 0.5 && rightShoulder.visibility > 0.5) {
-            const leftArmSpread = leftWrist.x - leftShoulder.x;
-            const rightArmSpread = rightShoulder.x - rightWrist.x;
-            this.leftWristTrajectory.push(leftArmSpread);
-            this.rightWristTrajectory.push(rightArmSpread);
+            this.leftWristTrajectory.push(leftWrist.x - leftShoulder.x);
+            this.rightWristTrajectory.push(rightShoulder.x - rightWrist.x);
         }
 
         this.detectBreak(leftWrist, rightWrist, timestamp);
@@ -389,7 +325,6 @@ class JumpRopeAnalyzer {
             }
 
             this.jumpCount++;
-
             if (this.onCountUpdate) {
                 this.onCountUpdate(this.jumpCount);
             }
@@ -402,10 +337,7 @@ class JumpRopeAnalyzer {
             const variance = this.calculateVariance(recent);
 
             if (variance > 0.05) {
-                this.potentialBreaks.push({
-                    time: timestamp,
-                    type: 'wrist_deviation'
-                });
+                this.potentialBreaks.push({ time: timestamp, type: 'wrist_deviation' });
                 this.breakCount++;
             }
         }
@@ -429,6 +361,7 @@ class JumpRopeAnalyzer {
             breakCount: this.breakCount
         };
 
+        // 平均节奏
         if (this.jumpInterval.length > 0) {
             const avgInterval = this.jumpInterval.reduce((a, b) => a + b, 0) / this.jumpInterval.length;
             metrics.avgTempo = (60000 / avgInterval).toFixed(1);
@@ -436,42 +369,38 @@ class JumpRopeAnalyzer {
             metrics.avgTempo = this.jumpCount > 0 ? (this.jumpCount / (this.duration / 60000) * 2).toFixed(1) : 0;
         }
 
+        // 节奏稳定性
         if (this.jumpInterval.length > 2) {
             const mean = this.jumpInterval.reduce((a, b) => a + b, 0) / this.jumpInterval.length;
-            const variance = this.calculateVariance(this.jumpInterval);
-            const cv = Math.sqrt(variance) / mean;
+            const cv = Math.sqrt(this.calculateVariance(this.jumpInterval)) / mean;
             metrics.tempoStability = Math.max(0, Math.min(1, 1 - cv));
         }
 
+        // 起跳高度
         if (this.jumpHeights.length > 0 && this.groundLevel !== null) {
-            const heightDiffs = this.jumpHeights.map(h => this.groundLevel - h);
-            const maxHeight = Math.max(...heightDiffs);
+            const maxHeight = Math.max(...this.jumpHeights.map(h => this.groundLevel - h));
             metrics.jumpHeight = Math.min(maxHeight, 0.3);
         }
 
+        // 手臂外展
         if (this.leftWristTrajectory.length > 0 && this.rightWristTrajectory.length > 0) {
-            const avgSpread = [
-                ...this.leftWristTrajectory.slice(-30),
-                ...this.rightWristTrajectory.slice(-30)
-            ].reduce((a, b) => a + b, 0) / 60;
+            const avgSpread = [...this.leftWristTrajectory.slice(-30), ...this.rightWristTrajectory.slice(-30)]
+                .reduce((a, b) => a + b, 0) / 60;
             metrics.armSpread = Math.abs(avgSpread);
         }
 
+        // 手腕驱动
         if (this.leftWristTrajectory.length > 10) {
-            const recent = this.leftWristTrajectory.slice(-10);
-            const variance = this.calculateVariance(recent);
+            const variance = this.calculateVariance(this.leftWristTrajectory.slice(-10));
             metrics.wristDrive = Math.max(0, 1 - variance * 10);
         }
 
+        // 后半段掉速
         if (this.jumpInterval.length > 10) {
-            const halfPoint = Math.floor(this.jumpInterval.length / 2);
-            const firstHalf = this.jumpInterval.slice(0, halfPoint);
-            const secondHalf = this.jumpInterval.slice(halfPoint);
-
-            const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
-            const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
-
-            metrics.fatigueDrop = Math.max(0, (secondAvg - firstAvg) / firstAvg);
+            const half = Math.floor(this.jumpInterval.length / 2);
+            const first = this.jumpInterval.slice(0, half).reduce((a, b) => a + b, 0) / half;
+            const second = this.jumpInterval.slice(half).reduce((a, b) => a + b, 0) / (this.jumpInterval.length - half);
+            metrics.fatigueDrop = Math.max(0, (second - first) / first);
         }
 
         return metrics;
