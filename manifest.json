@@ -1,0 +1,17 @@
+{
+  "name": "体智汇AI单摇提分教练",
+  "short_name": "AI提分教练",
+  "description": "30秒诊断，3分钟修正，7天提分",
+  "start_url": "/ai-coach/",
+  "display": "standalone",
+  "background_color": "#667eea",
+  "theme_color": "#4F46E5",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%234F46E5' width='100' height='100' rx='20'/><text x='50' y='65' text-anchor='middle' fill='white' font-size='40' font-weight='bold'>AI</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ]
+}

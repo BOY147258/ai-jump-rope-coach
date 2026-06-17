@@ -29,6 +29,9 @@ class JumpRopeCoachApp {
         this.lastResult = null;
         this.trainingTimer = null;
         this.trainingRemaining = 180;
+        this.testTimer = null;
+        this.demoMode = false;
+        this.demoInterval = null;
         this.elements = {};
         this.init();
     }
@@ -36,6 +39,7 @@ class JumpRopeCoachApp {
     init() {
         this.cacheElements();
         this.bindEvents();
+        this.checkCameraSupport();
         this.renderTeacherDashboard();
     }
 
@@ -52,6 +56,7 @@ class JumpRopeCoachApp {
         this.elements.liveCount = document.getElementById('live-count');
         this.elements.liveTempo = document.getElementById('live-tempo');
         this.elements.stopTestBtn = document.getElementById('stop-test-btn');
+        this.elements.testTimerDisplay = document.getElementById('timer-display');
         this.elements.diagnosisResult = document.getElementById('diagnosis-result');
         this.elements.trainingArea = document.getElementById('training-area');
         this.elements.teacherClassSelector = document.getElementById('teacher-class-selector');
@@ -62,6 +67,7 @@ class JumpRopeCoachApp {
         this.elements.problemRanking = document.getElementById('problem-ranking');
         this.elements.breakHistory = document.getElementById('break-history');
         this.elements.toast = document.getElementById('toast');
+        this.elements.demoNotice = document.getElementById('demo-notice');
         this.elements.resultCount = document.getElementById('result-count');
         this.elements.mainProblem = document.getElementById('main-problem');
         this.elements.metricTempo = document.getElementById('metric-tempo');
@@ -101,43 +107,36 @@ class JumpRopeCoachApp {
         this.elements.teacherClassSelector?.addEventListener('change', () => this.renderTeacherDashboard());
     }
 
+    checkCameraSupport() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            this.showToast('您的浏览器不支持摄像头，将使用演示模式');
+            this.demoMode = true;
+            this.elements.demoNotice?.classList.remove('hidden');
+        }
+    }
+
     switchMode(mode) {
         this.currentMode = mode;
-
         document.querySelectorAll('.mode-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.mode === mode);
         });
-
         document.getElementById('student-mode').classList.toggle('active', mode === 'student');
         document.getElementById('teacher-mode').classList.toggle('active', mode === 'teacher');
-
-        if (mode === 'teacher') {
-            this.renderTeacherDashboard();
-        }
+        if (mode === 'teacher') this.renderTeacherDashboard();
     }
 
     switchTeacherTab(tab) {
         document.querySelectorAll('.nav-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.tab === tab);
         });
-
         document.querySelectorAll('.tab-content').forEach(content => {
             content.classList.toggle('active', content.id === `tab-${tab}`);
         });
-
         switch (tab) {
-            case 'overview':
-                this.renderStudentList();
-                break;
-            case 'ranking':
-                this.renderProblemRanking();
-                break;
-            case 'review':
-                this.renderBreakHistory();
-                break;
-            case 'groups':
-                this.renderTrainingGroups();
-                break;
+            case 'overview': this.renderStudentList(); break;
+            case 'ranking': this.renderProblemRanking(); break;
+            case 'review': this.renderBreakHistory(); break;
+            case 'groups': this.renderTrainingGroups(); break;
         }
     }
 
@@ -153,20 +152,22 @@ class JumpRopeCoachApp {
 
         this.elements.classSelect.classList.add('hidden');
         this.elements.testArea.classList.remove('hidden');
-        this.elements.stopTestBtn.classList.remove('hidden');
 
+        if (this.demoMode) {
+            this.startDemoTest();
+        } else {
+            await this.startRealTest();
+        }
+    }
+
+    async startRealTest() {
         if (!this.analyzer) {
             this.analyzer = new JumpRopeAnalyzer();
             await this.analyzer.init();
-
             this.analyzer.onCountUpdate = (count) => {
                 this.elements.liveCount.textContent = count;
             };
-
-            this.analyzer.onComplete = (metrics) => {
-                this.handleTestComplete(metrics);
-            };
-
+            this.analyzer.onComplete = (metrics) => this.handleTestComplete(metrics);
             this.analyzer.onError = (error) => {
                 this.showToast(error);
                 this.resetToTest();
@@ -179,11 +180,73 @@ class JumpRopeCoachApp {
         );
 
         if (!cameraReady) {
-            this.showToast('摄像头启动失败');
+            this.showToast('摄像头启动失败，切换演示模式');
+            this.demoMode = true;
+            this.elements.demoNotice?.classList.remove('hidden');
+            this.startDemoTest();
             return;
         }
 
         this.startCountdown();
+    }
+
+    startDemoTest() {
+        let count = 3;
+        this.elements.countdownOverlay.classList.remove('hidden');
+        this.elements.countdownNumber.textContent = count;
+
+        const countdownInterval = setInterval(() => {
+            count--;
+            if (count > 0) {
+                this.elements.countdownNumber.textContent = count;
+            } else {
+                clearInterval(countdownInterval);
+                this.elements.countdownOverlay.classList.add('hidden');
+                this.elements.stopTestBtn.classList.remove('hidden');
+                this.runDemoTest();
+            }
+        }, 1000);
+    }
+
+    runDemoTest() {
+        let elapsed = 0;
+        const duration = 30000;
+        let count = 0;
+        const baseTempo = 150 + Math.random() * 30;
+
+        this.demoInterval = setInterval(() => {
+            elapsed += 100;
+            const remaining = Math.max(0, Math.ceil((duration - elapsed) / 1000));
+            if (this.elements.testTimerDisplay) {
+                this.elements.testTimerDisplay.textContent = remaining;
+            }
+
+            if (Math.random() < 0.1) {
+                count++;
+                this.elements.liveCount.textContent = count;
+            }
+
+            const tempo = baseTempo + Math.sin(elapsed / 2000) * 10;
+            this.elements.liveTempo.textContent = Math.round(tempo);
+
+            if (elapsed >= duration) {
+                clearInterval(this.demoInterval);
+                this.handleTestComplete(this.generateDemoMetrics(count));
+            }
+        }, 100);
+    }
+
+    generateDemoMetrics(count) {
+        return {
+            count: count || Math.floor(Math.random() * 30) + 50,
+            avgTempo: ((count || 60) * 2).toFixed(1),
+            tempoStability: 0.6 + Math.random() * 0.3,
+            jumpHeight: 0.08 + Math.random() * 0.12,
+            armSpread: 0.15 + Math.random() * 0.2,
+            wristDrive: 0.4 + Math.random() * 0.3,
+            fatigueDrop: 0.1 + Math.random() * 0.2,
+            breakCount: Math.floor(Math.random() * 3)
+        };
     }
 
     startCountdown() {
@@ -198,6 +261,7 @@ class JumpRopeCoachApp {
             } else {
                 clearInterval(countdownInterval);
                 this.elements.countdownOverlay.classList.add('hidden');
+                this.elements.stopTestBtn.classList.remove('hidden');
                 this.analyzer.start();
                 this.startLiveUpdate();
             }
@@ -206,11 +270,10 @@ class JumpRopeCoachApp {
 
     startLiveUpdate() {
         const updateInterval = setInterval(() => {
-            if (!this.analyzer.isRunning) {
+            if (!this.analyzer || !this.analyzer.isRunning) {
                 clearInterval(updateInterval);
                 return;
             }
-
             const live = this.analyzer.getLiveData();
             this.elements.liveCount.textContent = live.count;
             this.elements.liveTempo.textContent = live.tempo || '--';
@@ -218,7 +281,13 @@ class JumpRopeCoachApp {
     }
 
     stopTest() {
-        if (this.analyzer) {
+        if (this.demoMode) {
+            if (this.demoInterval) {
+                clearInterval(this.demoInterval);
+            }
+            const count = parseInt(this.elements.liveCount.textContent) || 0;
+            this.handleTestComplete(this.generateDemoMetrics(count));
+        } else if (this.analyzer) {
             const metrics = this.analyzer.calculateMetrics();
             this.analyzer.stop();
             this.handleTestComplete(metrics);
@@ -235,6 +304,7 @@ class JumpRopeCoachApp {
         this.updatePrescription(diagnosis.prescriptionCode);
 
         this.elements.testArea.classList.add('hidden');
+        this.elements.stopTestBtn.classList.add('hidden');
         this.elements.diagnosisResult.classList.remove('hidden');
 
         this.showToast('诊断完成！');
@@ -262,7 +332,6 @@ class JumpRopeCoachApp {
 
     updatePrescription(prescriptionCode) {
         const content = getPrescriptionContent(prescriptionCode);
-
         const card = document.getElementById('prescription-card');
         card.querySelector('.prescription-icon').textContent = content.icon;
         this.elements.prescriptionTitle.textContent = content.title;
@@ -277,17 +346,13 @@ class JumpRopeCoachApp {
     startTraining() {
         this.elements.diagnosisResult.classList.add('hidden');
         this.elements.trainingArea.classList.remove('hidden');
-
         this.trainingRemaining = 180;
         this.updateTrainingDisplay();
 
         this.trainingTimer = setInterval(() => {
             this.trainingRemaining--;
             this.updateTrainingDisplay();
-
-            if (this.trainingRemaining <= 0) {
-                this.finishTraining();
-            }
+            if (this.trainingRemaining <= 0) this.finishTraining();
         }, 1000);
     }
 
@@ -306,40 +371,31 @@ class JumpRopeCoachApp {
             clearInterval(this.trainingTimer);
             this.trainingTimer = null;
         }
-
         this.showToast('训练完成！准备再次测试');
-
-        setTimeout(() => {
-            this.resetToTest();
-        }, 1500);
+        setTimeout(() => this.resetToTest(), 1500);
     }
 
     resetToTest() {
         this.elements.trainingArea.classList.add('hidden');
         this.elements.diagnosisResult.classList.add('hidden');
-        this.elements.testArea.classList.remove('hidden');
-        this.elements.stopTestBtn.classList.add('hidden');
+        this.elements.testArea.classList.add('hidden');
+        this.elements.classSelect.classList.remove('hidden');
         this.elements.liveCount.textContent = '0';
         this.elements.liveTempo.textContent = '--';
-
-        if (this.analyzer) {
-            this.analyzer.stop();
-        }
+        if (this.analyzer) this.analyzer.stop();
     }
 
     showReport() {
-        this.showToast('报告功能开发中');
+        this.showToast('完整报告功能开发中');
     }
 
     renderTeacherDashboard() {
         const classStudents = DEMO_DATA.students.filter(s => s.class === 'class1');
-
         this.elements.classTotal.textContent = classStudents.length;
         const avg = Math.round(classStudents.reduce((sum, s) => sum + s.count, 0) / classStudents.length);
         this.elements.classAvg.textContent = avg;
         const improved = classStudents.filter(s => s.improvement > 0).length;
         this.elements.classImproved.textContent = improved;
-
         this.renderStudentList();
         this.renderProblemRanking();
         this.renderBreakHistory();
@@ -348,12 +404,10 @@ class JumpRopeCoachApp {
 
     renderStudentList() {
         const classStudents = DEMO_DATA.students.filter(s => s.class === 'class1');
-
         this.elements.studentRows.innerHTML = classStudents.map(student => {
             const problemTag = getProblemName(student.mainProblem);
             const prescription = getPrescription(student.mainProblem);
             const tagClass = student.improvement > 10 ? 'good' : student.improvement > 0 ? 'warning' : '';
-
             return `
                 <div class="student-row">
                     <span>${student.name}</span>
@@ -367,28 +421,13 @@ class JumpRopeCoachApp {
 
     renderProblemRanking() {
         const classStudents = DEMO_DATA.students.filter(s => s.class === 'class1');
-        const problemCounts = {
-            arm_spread: 0,
-            jump_high: 0,
-            rhythm_unstable: 0,
-            fatigue_drop: 0,
-            wrist_weak: 0
-        };
-
+        const problemCounts = { arm_spread: 0, jump_high: 0, rhythm_unstable: 0, fatigue_drop: 0, wrist_weak: 0 };
         classStudents.forEach(s => {
-            if (problemCounts.hasOwnProperty(s.mainProblem)) {
-                problemCounts[s.mainProblem]++;
-            }
+            if (problemCounts.hasOwnProperty(s.mainProblem)) problemCounts[s.mainProblem]++;
         });
 
         const maxCount = Math.max(...Object.values(problemCounts), 1);
-        const colors = {
-            arm_spread: '#FF6B6B',
-            jump_high: '#4ECDC4',
-            rhythm_unstable: '#FFE66D',
-            fatigue_drop: '#95E1D3',
-            wrist_weak: '#DDA0DD'
-        };
+        const colors = { arm_spread: '#FF6B6B', jump_high: '#4ECDC4', rhythm_unstable: '#FFE66D', fatigue_drop: '#95E1D3', wrist_weak: '#DDA0DD' };
 
         this.elements.problemRanking.innerHTML = Object.entries(problemCounts)
             .filter(([_, count]) => count > 0)
@@ -400,7 +439,7 @@ class JumpRopeCoachApp {
                         <span>${count}人</span>
                     </div>
                     <div class="ranking-bar">
-                        <div class="ranking-bar-fill" style="width: ${(count / maxCount) * 100}%; background: ${colors[problem]}"></div>
+                        <div class="ranking-bar-fill" style="width:${(count/maxCount)*100}%;background:${colors[problem]}"></div>
                     </div>
                 </div>
             `).join('');
@@ -411,23 +450,19 @@ class JumpRopeCoachApp {
             this.elements.breakHistory.innerHTML = '<p class="empty-state">暂无断绳记录</p>';
             return;
         }
-
         this.elements.breakHistory.innerHTML = DEMO_DATA.breaks.map(brk => `
-            <div class="break-item" style="padding: 12px; border-bottom: 1px solid var(--border);">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+            <div style="padding:12px;border-bottom:1px solid var(--border)">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px">
                     <strong>${brk.student}</strong>
-                    <span style="color: var(--text-light);">${brk.time}</span>
+                    <span style="color:var(--text-light)">${brk.time}</span>
                 </div>
-                <div style="font-size: 13px; color: var(--text-light);">
-                    断绳原因: ${brk.reason}
-                </div>
+                <div style="font-size:13px;color:var(--text-light)">断绳原因: ${brk.reason}</div>
             </div>
         `).join('');
     }
 
     renderTrainingGroups() {
         const classStudents = DEMO_DATA.students.filter(s => s.class === 'class1');
-
         const groups = {
             'rhythm_unstable': { members: [], element: 'group-a-members' },
             'arm_spread': { members: [], element: 'group-b-members' },
@@ -436,15 +471,12 @@ class JumpRopeCoachApp {
         };
 
         classStudents.forEach(s => {
-            if (groups.hasOwnProperty(s.mainProblem)) {
-                groups[s.mainProblem].members.push(s.name);
-            }
+            if (groups.hasOwnProperty(s.mainProblem)) groups[s.mainProblem].members.push(s.name);
         });
 
-        Object.entries(groups).forEach(([problem, data]) => {
+        Object.entries(groups).forEach(([_, data]) => {
             const membersEl = document.getElementById(data.element);
             const countEl = membersEl.parentElement.querySelector('.group-count');
-
             countEl.textContent = `${data.members.length}人`;
             membersEl.textContent = data.members.length > 0 ? data.members.join('、') : '暂无成员';
         });
@@ -453,10 +485,7 @@ class JumpRopeCoachApp {
     showToast(message) {
         this.elements.toast.textContent = message;
         this.elements.toast.classList.remove('hidden');
-
-        setTimeout(() => {
-            this.elements.toast.classList.add('hidden');
-        }, 2500);
+        setTimeout(() => this.elements.toast.classList.add('hidden'), 2500);
     }
 }
 

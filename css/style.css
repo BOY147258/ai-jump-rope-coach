@@ -25,24 +25,21 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background: var(--bg);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-attachment: fixed;
     color: var(--text);
     min-height: 100vh;
     line-height: 1.5;
 }
 
-/* 隐藏类 */
-.hidden {
-    display: none !important;
-}
-
-/* 容器 */
 .app-container {
     max-width: 480px;
     margin: 0 auto;
     padding: 16px;
     padding-bottom: 100px;
 }
+
+.hidden { display: none !important; }
 
 /* 头部 */
 .app-header {
@@ -51,19 +48,32 @@ body {
     align-items: center;
     padding: 12px 0;
     margin-bottom: 16px;
-    border-bottom: 1px solid var(--border);
 }
 
-.app-header h1 {
-    font-size: 18px;
+.logo-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.logo {
+    background: linear-gradient(135deg, var(--primary), #EC4899);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.logo-section h1 {
+    font-size: 16px;
     font-weight: 600;
-    color: var(--primary);
+    color: white;
 }
 
-/* 模式切换 */
 .mode-toggle {
     display: flex;
-    background: var(--border);
+    background: rgba(255, 255, 255, 0.2);
     border-radius: 8px;
     padding: 2px;
 }
@@ -75,26 +85,52 @@ body {
     border-radius: 6px;
     font-size: 13px;
     font-weight: 500;
-    color: var(--text-light);
+    color: rgba(255, 255, 255, 0.7);
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .mode-btn.active {
-    background: var(--card);
+    background: white;
     color: var(--primary);
-    box-shadow: var(--shadow);
 }
 
 /* 卡片 */
 .card {
     background: var(--card);
-    border-radius: 16px;
+    border-radius: 20px;
     padding: 20px;
     margin-bottom: 16px;
-    box-shadow: var(--shadow);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
 }
 
+/* 欢迎卡片 */
+.hero-card {
+    background: linear-gradient(135deg, var(--primary) 0%, #EC4899 100%);
+    color: white;
+}
+
+.hero-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.hero-icon {
+    font-size: 48px;
+}
+
+.hero-text h2 {
+    font-size: 20px;
+    margin-bottom: 4px;
+}
+
+.hero-text p {
+    opacity: 0.9;
+    font-size: 14px;
+}
+
+/* 表单元素 */
 .card h2 {
     font-size: 18px;
     font-weight: 600;
@@ -102,12 +138,10 @@ body {
     color: var(--text);
 }
 
-/* 表单元素 */
-.select-input,
-.text-input {
+.select-input, .text-input {
     width: 100%;
-    padding: 12px 16px;
-    border: 1px solid var(--border);
+    padding: 14px 16px;
+    border: 2px solid var(--border);
     border-radius: 12px;
     font-size: 16px;
     margin-bottom: 12px;
@@ -115,8 +149,7 @@ body {
     transition: border-color 0.2s;
 }
 
-.select-input:focus,
-.text-input:focus {
+.select-input:focus, .text-input:focus {
     outline: none;
     border-color: var(--primary);
 }
@@ -124,20 +157,24 @@ body {
 /* 按钮 */
 .primary-btn {
     width: 100%;
-    padding: 14px 24px;
+    padding: 16px 24px;
     background: linear-gradient(135deg, var(--primary), var(--primary-light));
     color: white;
     border: none;
-    border-radius: 12px;
-    font-size: 16px;
+    border-radius: 14px;
+    font-size: 17px;
     font-weight: 600;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .primary-btn:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+    box-shadow: 0 8px 24px rgba(79, 70, 229, 0.4);
 }
 
 .primary-btn:disabled {
@@ -145,14 +182,18 @@ body {
     cursor: not-allowed;
 }
 
+.btn-icon {
+    font-size: 20px;
+}
+
 .secondary-btn {
-    width: 100%;
-    padding: 12px 24px;
+    flex: 1;
+    padding: 12px 20px;
     background: var(--bg);
     color: var(--primary);
     border: 2px solid var(--primary);
     border-radius: 12px;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
@@ -166,10 +207,23 @@ body {
 .text-btn {
     background: none;
     border: none;
-    color: var(--primary);
+    color: var(--text-light);
     font-size: 14px;
     cursor: pointer;
     padding: 8px;
+}
+
+.stop-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--danger);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 16px;
 }
 
 /* 摄像头区域 */
@@ -177,8 +231,8 @@ body {
     position: relative;
     width: 100%;
     aspect-ratio: 3/4;
-    background: #000;
-    border-radius: 12px;
+    background: #1a1a2e;
+    border-radius: 16px;
     overflow: hidden;
     margin-bottom: 16px;
 }
@@ -203,128 +257,161 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.8);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-#countdown-number {
-    font-size: 120px;
-    font-weight: 700;
-    color: white;
+.countdown-box {
+    width: 120px;
+    height: 120px;
+    background: var(--primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     animation: pulse 1s ease-in-out infinite;
 }
 
+#countdown-number {
+    font-size: 64px;
+    font-weight: 700;
+    color: white;
+}
+
 @keyframes pulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.1); opacity: 0.8; }
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
 }
 
-/* 实时数据 */
-.test-info {
+.timer-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(239, 68, 68, 0.9);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+/* 测试统计 */
+.test-stats {
     display: flex;
-    justify-content: space-around;
-    padding: 16px 0;
+    gap: 12px;
 }
 
-.stat {
+.stat-box {
+    flex: 1;
+    background: var(--bg);
+    padding: 16px;
+    border-radius: 12px;
     text-align: center;
 }
 
-.stat-label {
+.stat-number {
     display: block;
-    font-size: 13px;
-    color: var(--text-light);
-    margin-bottom: 4px;
-}
-
-.stat-value {
-    font-size: 36px;
+    font-size: 32px;
     font-weight: 700;
     color: var(--primary);
 }
 
-.stat-unit {
-    font-size: 14px;
+.stat-label {
+    display: block;
+    font-size: 12px;
     color: var(--text-light);
 }
 
-/* 诊断结果 */
-.result-summary {
+/* 结果页面 */
+.result-header {
     text-align: center;
-    margin-bottom: 24px;
-}
-
-.main-stat {
     margin-bottom: 20px;
 }
 
-.big-number {
-    font-size: 72px;
+.result-score {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.score-number {
+    font-size: 80px;
     font-weight: 800;
     color: var(--primary);
     line-height: 1;
 }
 
-.unit {
+.score-unit {
     font-size: 18px;
     color: var(--text-light);
-    margin-left: 8px;
 }
 
-.diagnosis-card {
+.diagnosis-highlight {
     display: flex;
     align-items: center;
+    gap: 12px;
     background: linear-gradient(135deg, #FEF3C7, #FDE68A);
     padding: 16px;
-    border-radius: 12px;
-    margin-bottom: 16px;
+    border-radius: 16px;
+    margin-bottom: 20px;
 }
 
 .diagnosis-icon {
-    font-size: 32px;
-    margin-right: 12px;
+    font-size: 40px;
 }
 
-.diagnosis-text h3 {
-    font-size: 14px;
+.diagnosis-content {
+    flex: 1;
+}
+
+.diagnosis-label {
+    font-size: 12px;
     color: var(--text-light);
-    font-weight: 500;
+    display: block;
+    margin-bottom: 4px;
 }
 
-.diagnosis-text p {
+.diagnosis-text {
     font-size: 16px;
     font-weight: 600;
     color: var(--text);
 }
 
 /* 指标网格 */
+.metrics-section {
+    margin-bottom: 20px;
+}
+
+.metrics-section h3 {
+    font-size: 14px;
+    margin-bottom: 12px;
+    color: var(--text-light);
+}
+
 .metrics-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    margin-bottom: 24px;
+    gap: 10px;
 }
 
-.metric-item {
+.metric-card {
     background: var(--bg);
     padding: 12px;
-    border-radius: 8px;
+    border-radius: 10px;
     text-align: center;
 }
 
 .metric-label {
     display: block;
-    font-size: 11px;
+    font-size: 10px;
     color: var(--text-light);
     margin-bottom: 4px;
 }
 
 .metric-value {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
-    color: var(--text);
 }
 
 .metric-value.good { color: var(--secondary); }
@@ -333,30 +420,31 @@ body {
 
 /* 训练处方 */
 .prescription-section h3 {
-    font-size: 16px;
+    font-size: 14px;
     margin-bottom: 12px;
+    color: var(--text-light);
 }
 
 .prescription-card {
     background: linear-gradient(135deg, #DBEAFE, #BFDBFE);
     padding: 16px;
-    border-radius: 12px;
+    border-radius: 16px;
     display: flex;
     gap: 12px;
 }
 
 .prescription-icon {
-    font-size: 32px;
+    font-size: 36px;
 }
 
 .prescription-content h4 {
-    font-size: 16px;
+    font-size: 17px;
     color: var(--primary-dark);
     margin-bottom: 4px;
 }
 
-.prescription-content p {
-    font-size: 14px;
+.prescription-content > p {
+    font-size: 13px;
     color: var(--text-light);
     margin-bottom: 8px;
 }
@@ -364,41 +452,51 @@ body {
 .prescription-detail {
     font-size: 13px;
     color: var(--text);
-    background: rgba(255, 255, 255, 0.6);
-    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.7);
+    padding: 10px 12px;
     border-radius: 8px;
+    white-space: pre-line;
 }
 
 /* 操作按钮 */
 .action-buttons {
+    margin-top: 20px;
+}
+
+.secondary-actions {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
+    gap: 12px;
+    margin-top: 12px;
 }
 
 /* 训练区域 */
-.training-timer {
+.training-header {
     text-align: center;
     margin-bottom: 24px;
 }
 
+.training-header h2 {
+    text-align: left;
+}
+
 .countdown-circle {
-    width: 160px;
-    height: 160px;
+    width: 140px;
+    height: 140px;
+    margin: 16px auto;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--primary), var(--primary-light));
     color: white;
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 48px;
+    font-size: 42px;
     font-weight: 700;
-    box-shadow: 0 8px 24px rgba(79, 70, 229, 0.3);
+    box-shadow: 0 8px 32px rgba(79, 70, 229, 0.3);
 }
 
 .training-instruction {
     text-align: center;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 }
 
 .training-instruction h3 {
@@ -408,7 +506,7 @@ body {
 }
 
 .training-instruction p {
-    font-size: 16px;
+    font-size: 15px;
     color: var(--text-light);
 }
 
@@ -434,7 +532,17 @@ body {
     width: 0%;
 }
 
-/* 教师端样式 */
+.training-tips {
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.training-tips p {
+    font-size: 14px;
+    color: var(--text-light);
+}
+
+/* 教师端 */
 .mode-content {
     display: none;
 }
@@ -448,13 +556,12 @@ body {
     gap: 8px;
     margin-bottom: 16px;
     overflow-x: auto;
-    padding-bottom: 8px;
 }
 
 .nav-btn {
-    padding: 8px 16px;
-    background: var(--card);
-    border: 1px solid var(--border);
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
     border-radius: 20px;
     font-size: 14px;
     white-space: nowrap;
@@ -463,9 +570,9 @@ body {
 }
 
 .nav-btn.active {
-    background: var(--primary);
-    color: white;
-    border-color: var(--primary);
+    background: white;
+    color: var(--primary);
+    font-weight: 600;
 }
 
 .tab-content {
@@ -474,6 +581,16 @@ body {
 
 .tab-content.active {
     display: block;
+}
+
+.tab-content h2 {
+    color: white;
+    margin-bottom: 16px;
+}
+
+.tab-content h3 {
+    color: white;
+    margin-bottom: 12px;
 }
 
 /* 班级统计 */
@@ -485,11 +602,14 @@ body {
 }
 
 .stat-card {
-    background: var(--card);
+    background: white;
     padding: 16px;
-    border-radius: 12px;
+    border-radius: 16px;
     text-align: center;
-    box-shadow: var(--shadow);
+}
+
+.stat-card.success .stat-number {
+    color: var(--secondary);
 }
 
 .stat-number {
@@ -505,39 +625,40 @@ body {
 }
 
 /* 数据表格 */
-.student-list h3 {
-    font-size: 16px;
-    margin-bottom: 12px;
+.student-list {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
 }
 
-.data-table {
-    background: var(--card);
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: var(--shadow);
+.student-list h3 {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    margin: 0;
 }
 
 .table-header {
     display: grid;
-    grid-template-columns: 1fr 0.6fr 1.2fr 1fr;
+    grid-template-columns: 1fr 0.6fr 1fr 0.8fr;
     padding: 12px;
     background: var(--bg);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text-light);
 }
 
 .table-body {
-    max-height: 300px;
+    max-height: 320px;
     overflow-y: auto;
 }
 
 .student-row {
     display: grid;
-    grid-template-columns: 1fr 0.6fr 1.2fr 1fr;
+    grid-template-columns: 1fr 0.6fr 1fr 0.8fr;
     padding: 12px;
     border-bottom: 1px solid var(--border);
     font-size: 13px;
+    align-items: center;
 }
 
 .student-row:last-child {
@@ -546,27 +667,20 @@ body {
 
 .problem-tag {
     display: inline-block;
-    padding: 2px 8px;
+    padding: 3px 8px;
     border-radius: 10px;
     font-size: 11px;
     background: #FEE2E2;
     color: var(--danger);
 }
 
-.problem-tag.warning {
-    background: #FEF3C7;
-    color: var(--warning);
-}
-
-.problem-tag.good {
-    background: #D1FAE5;
-    color: var(--secondary);
-}
+.problem-tag.warning { background: #FEF3C7; color: var(--warning); }
+.problem-tag.good { background: #D1FAE5; color: var(--secondary); }
 
 /* 排行榜 */
 .ranking-chart {
-    background: var(--card);
-    border-radius: 12px;
+    background: white;
+    border-radius: 16px;
     padding: 20px;
     margin-bottom: 16px;
 }
@@ -575,9 +689,7 @@ body {
     margin-bottom: 16px;
 }
 
-.ranking-item:last-child {
-    margin-bottom: 0;
-}
+.ranking-item:last-child { margin-bottom: 0; }
 
 .ranking-label {
     display: flex;
@@ -603,6 +715,7 @@ body {
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
+    margin-bottom: 16px;
 }
 
 .legend-item {
@@ -610,6 +723,7 @@ body {
     align-items: center;
     gap: 6px;
     font-size: 13px;
+    color: white;
 }
 
 .legend-color {
@@ -620,8 +734,8 @@ body {
 
 /* 断绳记录 */
 .break-list {
-    background: var(--card);
-    border-radius: 12px;
+    background: white;
+    border-radius: 16px;
     padding: 16px;
 }
 
@@ -639,10 +753,9 @@ body {
 }
 
 .group-card {
-    background: var(--card);
-    border-radius: 12px;
+    background: white;
+    border-radius: 16px;
     padding: 16px;
-    box-shadow: var(--shadow);
 }
 
 .group-header {
@@ -655,9 +768,9 @@ body {
 .group-tag {
     background: var(--primary);
     color: white;
-    padding: 2px 10px;
-    border-radius: 10px;
-    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 13px;
     font-weight: 600;
 }
 
@@ -671,7 +784,7 @@ body {
     margin-bottom: 4px;
 }
 
-.group-card p {
+.group-card > p {
     font-size: 12px;
     color: var(--text-light);
     margin-bottom: 8px;
@@ -696,45 +809,37 @@ body {
     transform: translateX(-50%);
     background: var(--text);
     color: white;
-    padding: 12px 24px;
-    border-radius: 8px;
+    padding: 14px 24px;
+    border-radius: 12px;
     font-size: 14px;
     z-index: 1000;
     animation: toastIn 0.3s ease;
 }
 
 @keyframes toastIn {
-    from {
-        opacity: 0;
-        transform: translateX(-50%) translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-    }
+    from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* 演示模式提示 */
+.demo-notice {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 8px;
+    background: var(--warning);
+    color: white;
+    text-align: center;
+    font-size: 13px;
+    z-index: 1001;
 }
 
 /* 响应式 */
 @media (max-width: 400px) {
-    .app-container {
-        padding: 12px;
-    }
-
-    .metrics-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .groups-container {
-        grid-template-columns: 1fr;
-    }
-
-    .table-header,
-    .student-row {
-        grid-template-columns: 0.8fr 0.5fr 1fr;
-    }
-
-    .table-header span:last-child,
-    .student-row > span:last-child {
-        display: none;
-    }
+    .app-container { padding: 12px; }
+    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    .groups-container { grid-template-columns: 1fr; }
+    .table-header, .student-row { grid-template-columns: 0.8fr 0.5fr 1fr; }
+    .table-header span:last-child, .student-row > span:last-child { display: none; }
 }
