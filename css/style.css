@@ -99,7 +99,561 @@ body::before {
     background-clip: text;
 }
 
-.status-badge {
+.header-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.icon-btn {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-card);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.icon-btn:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--primary);
+}
+
+/* 快捷统计 */
+.quick-stats {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: var(--bg-card);
+    border-radius: 12px;
+    border: 1px solid var(--border);
+}
+
+.quick-stat {
+    text-align: center;
+}
+
+.quick-value {
+    display: block;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.quick-value.up {
+    color: var(--accent);
+}
+
+.quick-value.down {
+    color: var(--danger);
+}
+
+.quick-label {
+    font-size: 12px;
+    color: var(--text-dim);
+}
+
+/* 语音指示器 */
+.voice-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+    background: rgba(0, 240, 255, 0.1);
+    border-radius: 20px;
+    margin-top: 16px;
+    border: 1px solid var(--border);
+}
+
+.voice-icon {
+    font-size: 20px;
+    animation: pulse-glow 1s ease-in-out infinite;
+}
+
+#voice-text {
+    font-size: 14px;
+    color: var(--primary);
+}
+
+/* 进步提示 */
+.improvement-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 255, 136, 0.1));
+    border-radius: 12px;
+    border: 1px solid var(--accent);
+    margin-bottom: 16px;
+}
+
+.improvement-banner.down {
+    background: linear-gradient(135deg, rgba(255, 68, 102, 0.2), rgba(255, 68, 102, 0.1));
+    border-color: var(--danger);
+}
+
+.improve-icon {
+    font-size: 24px;
+}
+
+.improve-icon.down {
+    transform: rotate(180deg);
+}
+
+#improve-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.improvement-banner.down #improve-text {
+    color: var(--danger);
+}
+
+/* 进步曲线图 */
+.progress-chart-panel {
+    margin-bottom: 20px;
+}
+
+.progress-chart {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 12px;
+    border: 1px solid var(--border);
+}
+
+#chart-canvas {
+    width: 100%;
+    height: 120px;
+}
+
+/* 次要按钮行 */
+.secondary-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.secondary-row .cyber-btn {
+    flex: 1;
+}
+
+/* ===== 历史记录页面 ===== */
+.history-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.summary-card {
+    background: var(--bg-card);
+    padding: 16px;
+    border-radius: 12px;
+    text-align: center;
+    border: 1px solid var(--border);
+}
+
+.summary-value {
+    display: block;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.summary-label {
+    font-size: 12px;
+    color: var(--text-dim);
+}
+
+.history-chart {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+}
+
+.history-chart h3 {
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+}
+
+.history-list {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+}
+
+.history-list h3 {
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+}
+
+.history-record {
+    display: flex;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.history-record:last-child {
+    border-bottom: none;
+}
+
+.record-time {
+    font-size: 12px;
+    color: var(--text-dim);
+    width: 60px;
+}
+
+.record-count {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--primary);
+    width: 50px;
+}
+
+.record-grade {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--bg-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0 12px;
+}
+
+.record-problem {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-dim);
+}
+
+.record-improve {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.record-improve.up {
+    color: var(--accent);
+}
+
+.record-improve.down {
+    color: var(--danger);
+}
+
+/* ===== 设置页面 ===== */
+.settings-list {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 8px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border);
+}
+
+.setting-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.setting-item:last-child {
+    border-bottom: none;
+}
+
+.setting-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.setting-icon {
+    font-size: 20px;
+}
+
+.setting-name {
+    font-size: 15px;
+}
+
+.setting-select {
+    padding: 8px 12px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 14px;
+}
+
+/* 开关 */
+.switch {
+    position: relative;
+    width: 50px;
+    height: 28px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--bg-dark);
+    transition: 0.3s;
+    border-radius: 28px;
+    border: 1px solid var(--border);
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: var(--text-dim);
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+input:checked + .slider:before {
+    transform: translateX(22px);
+    background-color: white;
+}
+
+.settings-about {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-dim);
+    font-size: 13px;
+}
+
+.settings-about p {
+    margin-bottom: 4px;
+}
+
+/* ===== 教师端增强 ===== */
+.teacher-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.teacher-stat {
+    background: var(--bg-dark);
+    padding: 14px;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.teacher-stat-value {
+    display: block;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.teacher-stat-label {
+    font-size: 11px;
+    color: var(--text-dim);
+}
+
+.problem-distribution, .training-groups {
+    margin-bottom: 16px;
+}
+
+.problem-distribution h4, .training-groups h4 {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+}
+
+.problem-bar-item {
+    margin-bottom: 8px;
+}
+
+.problem-bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.problem-bar-name {
+    color: var(--text);
+}
+
+.problem-bar-count {
+    color: var(--text-dim);
+}
+
+.problem-bar {
+    height: 8px;
+    background: var(--bg-dark);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.problem-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+}
+
+.group-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    background: var(--bg-dark);
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+.group-tag {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-right: 10px;
+}
+
+.group-tag.a { background: #FF6B6B; color: white; }
+.group-tag.b { background: #4ECDC4; color: white; }
+.group-tag.c { background: #FFE66D; color: #333; }
+.group-tag.d { background: #DDA0DD; color: white; }
+
+.group-info {
+    flex: 1;
+}
+
+.group-name {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.group-count {
+    font-size: 11px;
+    color: var(--text-dim);
+}
+
+/* 训练指导 */
+.training-guide {
+    margin-top: 12px;
+    background: var(--bg-dark);
+    border-radius: 12px;
+    padding: 14px;
+    border: 1px solid var(--border);
+}
+
+.guide-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.guide-step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.step-num {
+    width: 24px;
+    height: 24px;
+    background: var(--primary);
+    color: var(--bg-dark);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.step-text {
+    font-size: 14px;
+    color: var(--text);
+}
+
+/* 训练演示 */
+.exercise-demo {
+    margin: 16px 0;
+    text-align: center;
+}
+
+.demo-visual {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto;
+    background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(255, 0, 170, 0.1));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: float 2s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.demo-emoji {
+    font-size: 60px;
+}
+
+.training-tips {
+    text-align: center;
+    padding: 12px;
+    background: rgba(0, 255, 136, 0.1);
+    border-radius: 8px;
+    margin-top: 16px;
+}
+
+.training-tips p {
+    font-size: 13px;
+    color: var(--accent);
+}
+
+/* 响应式 */
+@media (max-width: 400px) {
+    .app-container { padding: 12px; }
+    .calibration-status { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .status-item { padding: 10px 6px; }
+    .live-stats { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .stat-value { font-size: 24px; }
+    .history-summary { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .summary-value { font-size: 22px; }
+}
     display: flex;
     align-items: center;
     gap: 6px;

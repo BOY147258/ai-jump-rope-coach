@@ -17,11 +17,9 @@
                 <span class="logo-icon">⚡</span>
                 <span class="logo-text">AI提分教练</span>
             </div>
-            <div class="header-status">
-                <span id="system-status" class="status-badge">
-                    <span class="status-dot"></span>
-                    系统就绪
-                </span>
+            <div class="header-actions">
+                <button id="history-btn" class="icon-btn" title="历史记录">📊</button>
+                <button id="settings-btn" class="icon-btn" title="设置">⚙️</button>
             </div>
         </header>
 
@@ -42,9 +40,8 @@
                     <canvas id="pose-canvas"></canvas>
 
                     <!-- 虚拟人像引导 -->
-                    <div id="silhouette-guide" class="silhouette-overlay">
+                    <div class="silhouette-overlay">
                         <svg viewBox="0 0 200 400" class="silhouette-svg">
-                            <!-- 人像轮廓 -->
                             <ellipse cx="100" cy="45" rx="30" ry="35" class="sil-head"/>
                             <rect x="70" y="80" width="60" height="100" rx="10" class="sil-body"/>
                             <rect x="45" y="85" width="25" height="80" rx="5" class="sil-arm"/>
@@ -52,8 +49,6 @@
                             <rect x="75" y="180" width="22" height="120" rx="5" class="sil-leg"/>
                             <rect x="103" y="180" width="22" height="120" rx="5" class="sil-leg"/>
                         </svg>
-
-                        <!-- 位置指示器 -->
                         <div class="position-indicator">
                             <span id="position-status">等待检测...</span>
                         </div>
@@ -69,8 +64,6 @@
                             <span class="radar-unit">m</span>
                         </div>
                     </div>
-
-                    <!-- 对齐网格 -->
                     <div class="alignment-grid"></div>
                 </div>
 
@@ -90,6 +83,22 @@
                         <span class="status-icon">👁</span>
                         <span class="status-label">骨骼识别</span>
                         <span class="status-value">--</span>
+                    </div>
+                </div>
+
+                <!-- 历史进步 -->
+                <div class="quick-stats" id="quick-stats">
+                    <div class="quick-stat">
+                        <span class="quick-value" id="stat-best">--</span>
+                        <span class="quick-label">最佳</span>
+                    </div>
+                    <div class="quick-stat">
+                        <span class="quick-value" id="stat-improve">--</span>
+                        <span class="quick-label">进步</span>
+                    </div>
+                    <div class="quick-stat">
+                        <span class="quick-value" id="stat-today">--</span>
+                        <span class="quick-label">今日</span>
                     </div>
                 </div>
 
@@ -145,10 +154,22 @@
                 <div class="waveform">
                     <canvas id="waveform-canvas" width="300" height="60"></canvas>
                 </div>
+
+                <!-- 实时语音提示 -->
+                <div class="voice-indicator" id="voice-indicator">
+                    <span class="voice-icon">🔊</span>
+                    <span id="voice-text">测试开始</span>
+                </div>
             </section>
 
             <!-- 4. 诊断结果 -->
             <section id="result-view" class="view hidden">
+                <!-- 进步提示 -->
+                <div class="improvement-banner" id="improvement-banner">
+                    <span class="improve-icon">📈</span>
+                    <span id="improve-text">进步了 +5 次</span>
+                </div>
+
                 <div class="result-header">
                     <div class="score-display">
                         <span class="score-value" id="result-count">0</span>
@@ -174,42 +195,33 @@
                     <div class="metrics-grid">
                         <div class="metric-row">
                             <span class="metric-name">平均节奏</span>
-                            <div class="metric-bar">
-                                <div class="metric-fill" style="width: 0%"></div>
-                            </div>
+                            <div class="metric-bar"><div class="metric-fill" id="bar-tempo"></div></div>
                             <span class="metric-val" id="metric-tempo">--</span>
                         </div>
                         <div class="metric-row">
                             <span class="metric-name">节奏稳定</span>
-                            <div class="metric-bar">
-                                <div class="metric-fill" style="width: 0%"></div>
-                            </div>
+                            <div class="metric-bar"><div class="metric-fill" id="bar-stability"></div></div>
                             <span class="metric-val" id="metric-stability">--</span>
                         </div>
                         <div class="metric-row">
                             <span class="metric-name">起跳高度</span>
-                            <div class="metric-bar">
-                                <div class="metric-fill" style="width: 0%"></div>
-                            </div>
+                            <div class="metric-bar"><div class="metric-fill" id="bar-jump"></div></div>
                             <span class="metric-val" id="metric-jump">--</span>
                         </div>
                         <div class="metric-row">
                             <span class="metric-name">手臂外展</span>
-                            <div class="metric-bar">
-                                <div class="metric-fill" style="width: 0%"></div>
-                            </div>
+                            <div class="metric-bar"><div class="metric-fill" id="bar-arm"></div></div>
                             <span class="metric-val" id="metric-arm">--</span>
                         </div>
                         <div class="metric-row">
                             <span class="metric-name">后半段掉速</span>
-                            <div class="metric-bar">
-                                <div class="metric-fill" style="width: 0%"></div>
-                            </div>
+                            <div class="metric-bar"><div class="metric-fill" id="bar-fatigue"></div></div>
                             <span class="metric-val" id="metric-fatigue">--</span>
                         </div>
                     </div>
                 </div>
 
+                <!-- 训练指导 -->
                 <div class="prescription-panel">
                     <h3 class="panel-title">
                         <span class="title-bar accent"></span>
@@ -222,8 +234,38 @@
                             <p id="prescription-desc">根据你的问题，推荐针对性训练</p>
                         </div>
                     </div>
+
+                    <!-- 训练动作指导 -->
+                    <div class="training-guide" id="training-guide">
+                        <div class="guide-steps">
+                            <div class="guide-step">
+                                <span class="step-num">1</span>
+                                <span class="step-text">保持肘部贴近身体</span>
+                            </div>
+                            <div class="guide-step">
+                                <span class="step-num">2</span>
+                                <span class="step-text">手腕发力带动绳子</span>
+                            </div>
+                            <div class="guide-step">
+                                <span class="step-num">3</span>
+                                <span class="step-text">脚尖轻点地面</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="prescription-detail" id="prescription-detail">
                         20秒 × 3组，组间休息10秒
+                    </div>
+                </div>
+
+                <!-- 进步曲线 -->
+                <div class="progress-chart-panel">
+                    <h3 class="panel-title">
+                        <span class="title-bar"></span>
+                        进步曲线
+                    </h3>
+                    <div class="progress-chart" id="progress-chart">
+                        <canvas id="chart-canvas" width="350" height="120"></canvas>
                     </div>
                 </div>
 
@@ -232,9 +274,14 @@
                         <span class="btn-glow"></span>
                         <span class="btn-text">💪 开始训练</span>
                     </button>
-                    <button id="retest-btn" class="cyber-btn secondary">
-                        <span class="btn-text">🔄 再次测试</span>
-                    </button>
+                    <div class="secondary-row">
+                        <button id="retest-btn" class="cyber-btn secondary">
+                            <span class="btn-text">🔄 再次测试</span>
+                        </button>
+                        <button id="share-btn" class="cyber-btn secondary">
+                            <span class="btn-text">📤 分享成绩</span>
+                        </button>
+                    </div>
                 </div>
             </section>
 
@@ -252,15 +299,118 @@
                         <p id="exercise-desc">脚尖轻点地，身体上下幅度尽量小</p>
                     </div>
 
+                    <!-- 训练动作 -->
+                    <div class="exercise-demo" id="exercise-demo">
+                        <div class="demo-visual">
+                            <span class="demo-emoji">🦘</span>
+                        </div>
+                    </div>
+
                     <div class="training-progress">
                         <div class="progress-bar">
                             <div class="progress-fill" id="training-progress-fill"></div>
                         </div>
                         <span id="training-progress-text">0%</span>
                     </div>
+
+                    <!-- 训练提示 -->
+                    <div class="training-tips" id="training-tips">
+                        <p>💡 专注动作质量，不要追求速度</p>
+                    </div>
                 </div>
 
                 <button id="skip-training-btn" class="cyber-btn ghost">跳过训练</button>
+            </section>
+
+            <!-- 6. 历史记录页面 -->
+            <section id="history-view" class="view hidden">
+                <div class="view-header">
+                    <h2 class="cyber-title">
+                        <span class="title-icon">📊</span>
+                        历史记录
+                    </h2>
+                </div>
+
+                <div class="history-summary">
+                    <div class="summary-card">
+                        <span class="summary-value" id="history-total">0</span>
+                        <span class="summary-label">总测试次数</span>
+                    </div>
+                    <div class="summary-card">
+                        <span class="summary-value" id="history-best">0</span>
+                        <span class="summary-label">最佳成绩</span>
+                    </div>
+                    <div class="summary-card">
+                        <span class="summary-value" id="history-avg">0</span>
+                        <span class="summary-label">平均成绩</span>
+                    </div>
+                </div>
+
+                <div class="history-chart">
+                    <h3>进步曲线</h3>
+                    <canvas id="history-chart-canvas" width="350" height="180"></canvas>
+                </div>
+
+                <div class="history-list">
+                    <h3>测试记录</h3>
+                    <div id="history-records"></div>
+                </div>
+
+                <button id="clear-history-btn" class="cyber-btn ghost">清除历史</button>
+                <button id="back-from-history" class="cyber-btn secondary">返回</button>
+            </section>
+
+            <!-- 7. 设置页面 -->
+            <section id="settings-view" class="view hidden">
+                <div class="view-header">
+                    <h2 class="cyber-title">
+                        <span class="title-icon">⚙️</span>
+                        设置
+                    </h2>
+                </div>
+
+                <div class="settings-list">
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <span class="setting-icon">🔊</span>
+                            <span class="setting-name">语音提示</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="voice-toggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <span class="setting-icon">📏</span>
+                            <span class="setting-name">测试时长</span>
+                        </div>
+                        <select id="duration-select" class="setting-select">
+                            <option value="30" selected>30秒</option>
+                            <option value="60">60秒</option>
+                            <option value="120">120秒</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <span class="setting-icon">🌙</span>
+                            <span class="setting-name">深色模式</span>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="darkmode-toggle" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="settings-about">
+                    <p>AI提分教练 v1.0</p>
+                    <p>30秒诊断 · 3分钟修正 · 7天提分</p>
+                </div>
+
+                <button id="back-from-settings" class="cyber-btn secondary">返回</button>
             </section>
         </main>
 
@@ -273,21 +423,36 @@
         <!-- 教师端面板 -->
         <div id="teacher-panel" class="teacher-panel hidden">
             <div class="panel-header">
-                <h3>教师端</h3>
+                <h3>👨‍🏫 教师端</h3>
                 <button id="close-teacher-btn" class="close-btn">✕</button>
             </div>
             <div class="panel-content">
-                <div class="demo-stats">
-                    <div class="stat-item">
-                        <span class="stat-num" id="demo-total">0</span>
-                        <span class="stat-name">今日测试</span>
+                <div class="teacher-stats">
+                    <div class="teacher-stat">
+                        <span class="teacher-stat-value" id="teacher-today">0</span>
+                        <span class="teacher-stat-label">今日测试</span>
                     </div>
-                    <div class="stat-item">
-                        <span class="stat-num" id="demo-avg">0</span>
-                        <span class="stat-name">班级均分</span>
+                    <div class="teacher-stat">
+                        <span class="teacher-stat-value" id="teacher-avg">0</span>
+                        <span class="teacher-stat-label">班级均分</span>
+                    </div>
+                    <div class="teacher-stat">
+                        <span class="teacher-stat-value" id="teacher-best">0</span>
+                        <span class="teacher-stat-label">班级最佳</span>
                     </div>
                 </div>
-                <p class="demo-note">完整教师端功能开发中...</p>
+
+                <!-- 问题分布 -->
+                <div class="problem-distribution">
+                    <h4>班级问题分布</h4>
+                    <div id="problem-bars"></div>
+                </div>
+
+                <!-- 训练分组 -->
+                <div class="training-groups">
+                    <h4>建议训练分组</h4>
+                    <div class="group-list" id="group-list"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -304,6 +469,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="js/prescriptions.js"></script>
     <script src="js/diagnosis.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/voice.js"></script>
     <script src="js/analyzer.js"></script>
     <script src="js/app.js"></script>
 </body>
