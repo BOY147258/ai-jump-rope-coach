@@ -373,16 +373,17 @@ body::before {
     display: flex;
     align-items: center;
     padding: 12px 16px;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.9);
     gap: 12px;
 }
 
 .test-timer-mini {
-    font-size: 28px;
+    font-size: 32px;
     font-weight: 800;
     color: var(--primary);
-    min-width: 50px;
+    min-width: 60px;
     text-align: center;
+    text-shadow: 0 0 20px var(--glow);
 }
 
 .test-progress-mini {
@@ -390,18 +391,39 @@ body::before {
 }
 
 .progress-bar-thin {
-    height: 6px;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
     overflow: hidden;
 }
 
 .progress-fill-thin {
     height: 100%;
-    background: linear-gradient(90deg, var(--primary), var(--secondary));
-    border-radius: 3px;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    border-radius: 4px;
     width: 0%;
     transition: width 0.1s linear;
+    box-shadow: 0 0 10px var(--glow);
+}
+
+.stop-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255, 68, 102, 0.3);
+    border: 2px solid var(--danger);
+    color: var(--danger);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.stop-btn:hover {
+    background: var(--danger);
+    color: white;
 }
 
 /* 镜像容器 */
@@ -409,13 +431,14 @@ body::before {
     flex: 1;
     position: relative;
     overflow: hidden;
+    background: linear-gradient(180deg, #0a0a1a 0%, #1a1a3a 100%);
 }
 
 #mirror-video {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transform: scaleX(-1); /* 镜像翻转 */
+    transform: scaleX(-1);
 }
 
 #mirror-canvas {
@@ -424,7 +447,51 @@ body::before {
     left: 0;
     width: 100%;
     height: 100%;
-    transform: scaleX(-1); /* 镜像翻转 */
+    transform: scaleX(-1);
+}
+
+/* 问题区域高亮 */
+.problem-zone-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.zone-highlight {
+    position: absolute;
+    border: 3px dashed transparent;
+    border-radius: 12px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.zone-highlight.active {
+    opacity: 1;
+    animation: zone-pulse 1s ease-in-out infinite;
+}
+
+.zone-arm {
+    top: 20%;
+    left: 10%;
+    right: 10%;
+    height: 30%;
+    border-color: var(--warning);
+}
+
+.zone-leg {
+    bottom: 15%;
+    left: 20%;
+    right: 20%;
+    height: 25%;
+    border-color: var(--accent);
+}
+
+@keyframes zone-pulse {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.02); }
 }
 
 /* 实时问题提示 */
@@ -436,11 +503,253 @@ body::before {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 16px;
-    background: rgba(0, 0, 0, 0.75);
-    border-radius: 20px;
+    padding: 10px 20px;
+    background: rgba(0, 0, 0, 0.85);
+    border-radius: 24px;
+    border: 2px solid var(--warning);
+    animation: hint-bounce 2s ease-in-out infinite;
+    z-index: 10;
+}
+
+.live-problem-hint.good {
+    border-color: var(--accent);
+}
+
+.live-problem-hint.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+@keyframes hint-bounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-3px); }
+}
+
+.hint-icon {
+    font-size: 20px;
+}
+
+.hint-text {
+    font-size: 15px;
+    color: var(--warning);
+    font-weight: 600;
+}
+
+.live-problem-hint.good .hint-text {
+    color: var(--accent);
+}
+
+/* 动作指示器 */
+.action-indicator {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 24px;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 24px;
+    border: 1px solid var(--primary);
+}
+
+.action-indicator.jumping {
+    animation: jump-bounce 0.3s ease-out;
+}
+
+@keyframes jump-bounce {
+    0% { transform: translateX(-50%) translateY(0) scale(1); }
+    50% { transform: translateX(-50%) translateY(-20px) scale(1.1); }
+    100% { transform: translateX(-50%) translateY(0) scale(1); }
+}
+
+.action-icon {
+    font-size: 28px;
+}
+
+/* 底部数据区 */
+.test-bottom-area {
+    padding: 16px;
+    background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.95) 30%);
+    padding-top: 24px;
+}
+
+/* 大数字计数 + 节奏环 */
+.big-count-wrapper {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    margin: 0 auto 16px;
+}
+
+.tempo-ring {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.tempo-ring svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.tempo-ring-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.1);
+    stroke-width: 8;
+}
+
+.tempo-ring-fill {
+    fill: none;
+    stroke: var(--primary);
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-dasharray: 346;
+    stroke-dashoffset: 346;
+    transition: stroke-dashoffset 0.1s linear, stroke 0.3s;
+    filter: drop-shadow(0 0 8px var(--glow));
+}
+
+.tempo-ring-fill.warning {
+    stroke: var(--warning);
+    filter: drop-shadow(0 0 8px rgba(255, 170, 0, 0.5));
+}
+
+.big-count-display {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.big-count {
+    font-size: 64px;
+    font-weight: 900;
+    color: var(--primary);
+    text-shadow: 0 0 30px var(--glow);
+    line-height: 1;
+    transition: transform 0.1s, color 0.3s;
+}
+
+.big-count.pulse {
+    animation: count-pulse 0.2s ease-out;
+}
+
+@keyframes count-pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
+
+.big-count-label {
+    font-size: 18px;
+    color: var(--text-dim);
+    margin-left: 4px;
+}
+
+/* 实时指标行 */
+.live-metrics-row {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-bottom: 12px;
+}
+
+.live-metric-item {
+    text-align: center;
+    min-width: 60px;
+}
+
+.live-metric-value {
+    display: block;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    transition: color 0.3s;
+}
+
+.live-metric-value.warning {
+    color: var(--warning);
+}
+
+.live-metric-value.danger {
+    color: var(--danger);
+}
+
+.live-metric-value.good {
+    color: var(--accent);
+}
+
+.live-metric-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* 问题预警 */
+.problem-alerts {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    min-height: 32px;
+}
+
+.alert-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: rgba(255, 170, 0, 0.2);
     border: 1px solid var(--warning);
-    animation: hint-pulse 2s ease-in-out infinite;
+    border-radius: 20px;
+    font-size: 13px;
+    color: var(--warning);
+    animation: alert-pulse 0.8s ease-in-out infinite;
+}
+
+.alert-item.hidden {
+    display: none;
+}
+
+.alert-item.good {
+    background: rgba(0, 255, 136, 0.2);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+@keyframes alert-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(0.98); }
+}
+
+.alert-icon {
+    font-size: 14px;
+}
+
+/* 鼓励文字 */
+.encourage-text {
+    text-align: center;
+    margin-top: 12px;
+    font-size: 14px;
+    color: var(--accent);
+    min-height: 20px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.encourage-text.show {
+    opacity: 1;
+    animation: encourage-pop 0.5s ease-out;
+}
+
+@keyframes encourage-pop {
+    0% { transform: scale(0.8); opacity: 0; }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); opacity: 1; }
 }
 
 .live-problem-hint.good {
@@ -509,22 +818,11 @@ body::before {
 
 /* 大数字计数 */
 .big-count-display {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     text-align: center;
-    margin-bottom: 12px;
-}
-
-.big-count {
-    font-size: 72px;
-    font-weight: 900;
-    color: var(--primary);
-    text-shadow: 0 0 30px var(--glow);
-    line-height: 1;
-}
-
-.big-count-label {
-    font-size: 24px;
-    color: var(--text-dim);
-    margin-left: 8px;
 }
 
 /* 实时指标行 */
