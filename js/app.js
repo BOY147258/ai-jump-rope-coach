@@ -253,7 +253,8 @@ class JumpRopeCoachApp {
     onPersonDetected(data) {
         if (!this.personDetected && data.personDetected) {
             this.personDetected = true;
-            Voice.speak('已检测到您');
+            Voice.speak('第一步完成，请举起双臂');
+            this.showToast('已检测到您 ✓ 请举起双臂');
         }
         this.updateDetectionUI();
     }
@@ -262,8 +263,8 @@ class JumpRopeCoachApp {
         if (!this.readyDetected) {
             this.readyDetected = true;
             this.updateDetectionUI();
-            Voice.speak('准备就绪');
-            this.showToast('检测到准备姿势，3秒后开始！');
+            Voice.speak('准备就绪，点击开始');
+            this.showToast('准备就绪！可以开始测试了');
 
             if (this.autoStartEnabled) {
                 setTimeout(() => this.startCountdown(), 500);
@@ -272,37 +273,47 @@ class JumpRopeCoachApp {
     }
 
     updateDetectionUI() {
-        this.elements.checkPerson.textContent = this.personDetected ? '✓' : '○';
-        this.elements.checkPerson.parentElement.classList.toggle('checked', this.personDetected);
+        // 更新引导步骤
+        const step1 = document.getElementById('guide-step-1');
+        const step2 = document.getElementById('guide-step-2');
+        const step3 = document.getElementById('guide-step-3');
 
-        this.elements.checkReady.textContent = this.readyDetected ? '✓' : '○';
-        this.elements.checkReady.parentElement.classList.toggle('checked', this.readyDetected);
+        if (!step1 || !step2 || !step3) return;
 
-        const statusRing = document.querySelector('.status-ring');
+        // 摄像头就绪指示
+        const cameraIndicator = document.getElementById('camera-ready-indicator');
+
         if (this.readyDetected) {
-            this.elements.statusIcon.textContent = '🎮';
-            this.elements.statusText.textContent = '准备就绪';
-            this.elements.statusText.classList.add('ready');
-            statusRing?.classList.add('ready');
+            // 全部完成
+            step1.classList.remove('active');
+            step1.classList.add('completed');
+            step2.classList.remove('active');
+            step2.classList.add('completed');
+            step3.classList.add('active');
             this.elements.startBtn.disabled = false;
             this.elements.startBtn.classList.add('ready');
-            this.elements.detectHint.textContent = '姿势正确，准备开始';
+            this.elements.hintText.textContent = '准备完成，点击开始测试';
+            if (cameraIndicator) cameraIndicator.classList.add('active');
         } else if (this.personDetected) {
-            this.elements.statusIcon.textContent = '👤';
-            this.elements.statusText.textContent = '请抬起双臂';
-            this.elements.statusText.classList.remove('ready');
-            statusRing?.classList.remove('ready');
+            // 步骤2：举起双臂
+            step1.classList.remove('active');
+            step1.classList.add('completed');
+            step2.classList.add('active');
+            step3.classList.remove('active');
             this.elements.startBtn.disabled = true;
             this.elements.startBtn.classList.remove('ready');
-            this.elements.detectHint.textContent = '请双手握好跳绳，双臂抬起';
+            this.elements.hintText.textContent = '请双手举起跳绳，像准备跳绳一样';
+            if (cameraIndicator) cameraIndicator.classList.add('active');
         } else {
-            this.elements.statusIcon.textContent = '👤';
-            this.elements.statusText.textContent = '检测中...';
-            this.elements.statusText.classList.remove('ready');
-            statusRing?.classList.remove('ready');
+            // 步骤1：进入画面
+            step1.classList.add('active');
+            step1.classList.remove('completed');
+            step2.classList.remove('active', 'completed');
+            step3.classList.remove('active', 'completed');
             this.elements.startBtn.disabled = true;
             this.elements.startBtn.classList.remove('ready');
-            this.elements.detectHint.textContent = '请进入画面';
+            this.elements.hintText.textContent = '请站到摄像头前';
+            if (cameraIndicator) cameraIndicator.classList.remove('active');
         }
     }
 
@@ -341,9 +352,12 @@ class JumpRopeCoachApp {
             } else {
                 clearInterval(this.countdownInterval);
                 this.countdownInterval = null;
-                this.elements.countdownOverlay.classList.add('hidden');
+                this.elements.countdownNumber.textContent = 'GO!';
                 Voice.testStart();
-                this.startRealTest();
+                setTimeout(() => {
+                    this.elements.countdownOverlay.classList.add('hidden');
+                    this.startRealTest();
+                }, 500);
             }
         }, 1000);
     }

@@ -2206,3 +2206,148 @@ input:checked + .slider:before {
     .live-stats { grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .stat-value { font-size: 24px; }
 }
+
+/* ===== 新版大引导界面 ===== */
+.view-header {
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.big-guide {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.guide-step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: var(--bg-card);
+    border-radius: 12px;
+    border: 2px solid transparent;
+    opacity: 0.5;
+    transition: all 0.3s ease;
+}
+
+.guide-step.active {
+    opacity: 1;
+    border-color: var(--primary);
+    background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(0, 240, 255, 0.05));
+}
+
+.guide-step.completed {
+    opacity: 0.7;
+    border-color: var(--accent);
+}
+
+.guide-step.completed .guide-emoji {
+    background: var(--accent);
+}
+
+.guide-emoji {
+    font-size: 28px;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-dark);
+    border-radius: 12px;
+}
+
+.guide-text {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.guide-sub {
+    font-size: 12px;
+    color: var(--text-dim);
+}
+
+/* 摄像头就绪指示 */
+.camera-ready-indicator {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 20px;
+    font-size: 12px;
+    color: var(--text-dim);
+}
+
+.camera-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--danger);
+    border-radius: 50%;
+    animation: blink 1s ease-in-out infinite;
+}
+
+.camera-ready-indicator.active .camera-dot {
+    background: var(--accent);
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* 倒计时大屏 */
+.countdown-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.countdown-number {
+    font-size: 150px;
+    font-weight: 900;
+    color: var(--primary);
+    text-shadow: 0 0 50px var(--glow), 0 0 100px var(--glow);
+    animation: countdownPop 1s ease-out;
+}
+
+.countdown-text {
+    font-size: 24px;
+    color: var(--text);
+    margin-top: 20px;
+    animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes countdownPop {
+    0% { transform: scale(0.5); opacity: 0; }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 按钮准备状态 */
+.cyber-btn.ready {
+    animation: btnPulse 2s ease-in-out infinite;
+}
+
+@keyframes btnPulse {
+    0%, 100% { box-shadow: 0 0 20px var(--glow); }
+    50% { box-shadow: 0 0 40px var(--glow-strong), 0 0 60px var(--glow); }
+}

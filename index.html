@@ -32,50 +32,50 @@
                         <span class="title-icon">📷</span>
                         准备开始
                     </h2>
-                    <p class="view-subtitle" id="detect-hint">请进入画面，握好跳绳</p>
+                </div>
+
+                <!-- 大号引导文字 -->
+                <div class="big-guide" id="big-guide">
+                    <div class="guide-step active" id="guide-step-1">
+                        <span class="guide-emoji">👤</span>
+                        <span class="guide-text">请站到摄像头前</span>
+                        <span class="guide-sub">让人物出现在画面中央</span>
+                    </div>
+                    <div class="guide-step" id="guide-step-2">
+                        <span class="guide-emoji">🎮</span>
+                        <span class="guide-text">双手举起跳绳</span>
+                        <span class="guide-sub">像准备跳绳一样举起双臂</span>
+                    </div>
+                    <div class="guide-step" id="guide-step-3">
+                        <span class="guide-emoji">✅</span>
+                        <span class="guide-text">准备就绪</span>
+                        <span class="guide-sub">点击下方按钮开始测试</span>
+                    </div>
                 </div>
 
                 <div class="camera-wrapper">
                     <video id="camera-preview" autoplay playsinline></video>
                     <canvas id="pose-canvas"></canvas>
 
-                    <!-- 检测状态叠加 -->
-                    <div class="detect-overlay">
-                        <!-- 状态指示 -->
-                        <div class="detect-status" id="detect-status">
-                            <div class="status-ring">
-                                <span class="ring-icon" id="status-icon">👤</span>
-                            </div>
-                            <span class="status-text" id="status-text">检测中...</span>
-                        </div>
-
-                        <!-- 检测项目 -->
-                        <div class="detect-items">
-                            <div class="detect-item" id="detect-person">
-                                <span class="detect-icon">👤</span>
-                                <span class="detect-label">人体检测</span>
-                                <span class="detect-check" id="check-person">○</span>
-                            </div>
-                            <div class="detect-item" id="detect-ready">
-                                <span class="detect-icon">🎮</span>
-                                <span class="detect-label">准备就绪</span>
-                                <span class="detect-check" id="check-ready">○</span>
-                            </div>
-                        </div>
-
-                        <!-- 倒计时 -->
-                        <div class="countdown-overlay hidden" id="countdown-overlay">
-                            <span id="countdown-number">3</span>
-                        </div>
+                    <!-- 摄像头就绪指示 -->
+                    <div class="camera-ready-indicator" id="camera-ready-indicator">
+                        <span class="camera-dot"></span>
+                        <span>摄像头工作中</span>
                     </div>
                 </div>
 
-                <button id="start-btn" class="cyber-btn primary" disabled>
+                <button id="start-btn" class="cyber-btn primary ready" disabled>
                     <span class="btn-glow"></span>
                     <span class="btn-text">🎯 开始测试</span>
                 </button>
 
-                <p class="hint-text" id="hint-text">请站到摄像头前，双手握好跳绳</p>
+                <p class="hint-text" id="hint-text">请按步骤完成准备</p>
+
+                <!-- 倒计时大屏 -->
+                <div class="countdown-overlay hidden" id="countdown-overlay">
+                    <div class="countdown-number" id="countdown-number">3</div>
+                    <div class="countdown-text">准备起跳！</div>
+                </div>
             </section>
 
             <!-- 2. 测试进行中 -->
