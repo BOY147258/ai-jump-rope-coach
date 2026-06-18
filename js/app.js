@@ -73,16 +73,21 @@ class JumpRopeCoachApp {
         this.elements.mirrorCanvas = document.getElementById('mirror-canvas');
         this.elements.testTimerMini = document.getElementById('test-timer-mini');
         this.elements.progressFillThin = document.getElementById('progress-fill-thin');
+        this.elements.stopTestBtn = document.getElementById('stop-test-btn');
         this.elements.liveProblemHint = document.getElementById('live-problem-hint');
         this.elements.hintTextTest = document.getElementById('hint-text');
         this.elements.actionIndicator = document.getElementById('action-indicator');
         this.elements.bigCount = document.getElementById('big-count');
+        this.elements.tempoRingFill = document.getElementById('tempo-ring-fill');
         this.elements.liveBpm = document.getElementById('live-bpm');
         this.elements.liveHeight = document.getElementById('live-height');
         this.elements.liveArm = document.getElementById('live-arm');
         this.elements.alertArm = document.getElementById('alert-arm');
         this.elements.alertHeight = document.getElementById('alert-height');
         this.elements.alertRhythm = document.getElementById('alert-rhythm');
+        this.elements.zoneArm = document.getElementById('zone-arm');
+        this.elements.zoneLeg = document.getElementById('zone-leg');
+        this.elements.encourageText = document.getElementById('encourage-text');
 
         // 结果
         this.elements.improvementBanner = document.getElementById('improvement-banner');
@@ -158,6 +163,7 @@ class JumpRopeCoachApp {
         this.elements.backFromSettingsBtn?.addEventListener('click', () => this.hideSettings());
         this.elements.voiceToggle?.addEventListener('change', (e) => this.toggleVoice(e.target.checked));
         this.elements.durationSelect?.addEventListener('change', (e) => this.changeDuration(e.target.value));
+        this.elements.stopTestBtn?.addEventListener('click', () => this.stopTestEarly());
     }
 
     initVoice() {
@@ -432,6 +438,14 @@ class JumpRopeCoachApp {
         this.elements.alertArm.classList.add('hidden');
         this.elements.alertHeight.classList.add('hidden');
         this.elements.alertRhythm.classList.add('hidden');
+        this.elements.zoneArm?.classList.remove('active');
+        this.elements.zoneLeg?.classList.remove('active');
+        this.elements.encourageText.classList.remove('show');
+        // 重置节奏环
+        if (this.elements.tempoRingFill) {
+            this.elements.tempoRingFill.style.strokeDashoffset = 346;
+            this.elements.tempoRingFill.classList.remove('warning');
+        }
     }
 
     startTestMonitor() {
@@ -466,9 +480,55 @@ class JumpRopeCoachApp {
     }
 
     updateLiveMetrics(data) {
+        // 更新节奏环
+        if (data.tempo && this.elements.tempoRingFill) {
+            const dashOffset = 346 - (346 * Math.min(data.tempo / 200, 1));
+            this.elements.tempoRingFill.style.strokeDashoffset = dashOffset;
+
+            // 如果节奏有问题，环变橙色
+            if (data.tempo > 180 || data.tempo < 120) {
+                this.elements.tempoRingFill.classList.add('warning');
+            } else {
+                this.elements.tempoRingFill.classList.remove('warning');
+            }
+        }
+
         // 更新BPM
         if (data.tempo) {
             this.elements.liveBpm.textContent = data.tempo;
+        }
+
+        // 更新起跳高度
+        if (data.jumpHeight !== undefined) {
+            if (data.jumpHeight > 60) {
+                this.elements.liveHeight.textContent = '过高';
+                this.elements.liveHeight.className = 'live-metric-value danger';
+                this.elements.zoneLeg?.classList.add('active');
+            } else if (data.jumpHeight > 40) {
+                this.elements.liveHeight.textContent = '适中';
+                this.elements.liveHeight.className = 'live-metric-value good';
+                this.elements.zoneLeg?.classList.remove('active');
+            } else {
+                this.elements.liveHeight.textContent = '偏低';
+                this.elements.liveHeight.className = 'live-metric-value';
+            }
+        }
+
+        // 更新手臂状态
+        if (data.armSpread !== undefined) {
+            if (data.armSpread > 60) {
+                this.elements.liveArm.textContent = '外展';
+                this.elements.liveArm.className = 'live-metric-value warning';
+                this.elements.zoneArm?.classList.add('active');
+            } else if (data.armSpread > 40) {
+                this.elements.liveArm.textContent = '稍开';
+                this.elements.liveArm.className = 'live-metric-value';
+                this.elements.zoneArm?.classList.add('active');
+            } else {
+                this.elements.liveArm.textContent = '收紧';
+                this.elements.liveArm.className = 'live-metric-value good';
+                this.elements.zoneArm?.classList.remove('active');
+            }
         }
 
         // 更新实时问题提示
@@ -480,14 +540,22 @@ class JumpRopeCoachApp {
         if (data.problem) {
             if (data.problem.type === 'arm_spread') {
                 this.elements.alertArm.classList.remove('hidden');
-                this.elements.liveArm.textContent = '偏开';
-                this.elements.liveArm.classList.add('warning');
             }
             if (data.problem.type === 'jump_high') {
                 this.elements.alertHeight.classList.remove('hidden');
-                this.elements.liveHeight.textContent = '过高';
-                this.elements.liveHeight.classList.add('danger');
             }
+            if (data.problem.type === 'rhythm_unstable') {
+                this.elements.alertRhythm.classList.remove('hidden');
+            }
+        }
+
+        // 更新鼓励文字
+        if (data.encourage) {
+            this.elements.encourageText.textContent = data.encourage;
+            this.elements.encourageText.classList.add('show');
+            setTimeout(() => {
+                this.elements.encourageText.classList.remove('show');
+            }, 2000);
         }
     }
 
@@ -584,6 +652,18 @@ class JumpRopeCoachApp {
             fatigueDrop: 0.1 + Math.random() * 0.2,
             breakCount: Math.floor(Math.random() * 3)
         };
+    }
+
+    stopTestEarly() {
+        if (!this.analyzer?.isRunning) return;
+
+        const metrics = this.analyzer.stop();
+        if (metrics) {
+            this.showResults(metrics);
+        } else {
+            this.showToast('数据不足，无法生成报告');
+            this.resetToDetect();
+        }
     }
 
     showResults(metrics) {
