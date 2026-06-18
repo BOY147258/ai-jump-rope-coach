@@ -161,33 +161,48 @@ class JumpRopeAnalyzer {
      * 获取实时反馈
      */
     getLiveFeedback() {
-        const feedback = {
-            problem: this.currentProblem,
-            hint: this.problemHint,
-            isGood: true,
-            currentJumpHeight: 0,
-            currentArmSpread: 0,
-            currentRhythm: 0
-        };
-
-        // 计算最近10次跳跃的平均指标
-        if (this.jumpHeights.length > 0) {
-            const recent = this.jumpHeights.slice(-10);
-            feedback.currentJumpHeight = recent.reduce((a, b) => a + b, 0) / recent.length;
-        }
-
-        if (this.shoulderWidths.length > 0) {
-            const recent = this.shoulderWidths.slice(-10);
-            feedback.currentArmSpread = recent.reduce((a, b) => a + b, 0) / recent.length;
-        }
-
+        // 计算当前节奏 (BPM)
+        let tempo = 0;
         if (this.jumpInterval.length > 0) {
             const recent = this.jumpInterval.slice(-5);
             const avgInterval = recent.reduce((a, b) => a + b, 0) / recent.length;
-            feedback.currentRhythm = 60000 / avgInterval;
+            tempo = Math.round(60000 / avgInterval);
         }
 
-        return feedback;
+        // 计算最近起跳高度
+        let jumpHeight = 0;
+        if (this.jumpHeights.length > 0) {
+            const recent = this.jumpHeights.slice(-10);
+            jumpHeight = Math.round(recent.reduce((a, b) => a + b, 0) / recent.length);
+        }
+
+        // 计算手臂外展程度
+        let armSpread = 0;
+        if (this.shoulderWidths.length > 0) {
+            const recent = this.shoulderWidths.slice(-10);
+            armSpread = Math.round(recent.reduce((a, b) => a + b, 0) / recent.length);
+        }
+
+        // 根据问题类型生成鼓励文字
+        let encourage = '';
+        if (this.currentProblem?.type === 'arm_spread' && this.currentProblem.severity < 0.5) {
+            encourage = '✅ 手臂收紧了！';
+        } else if (this.currentProblem?.type === 'jump_high' && this.currentProblem.severity < 0.5) {
+            encourage = '✅ 起跳降低了！';
+        } else if (tempo >= 140 && tempo <= 170) {
+            encourage = '💪 节奏很好！';
+        }
+
+        return {
+            tempo: tempo,
+            jumpHeight: jumpHeight,
+            armSpread: armSpread,
+            problem: this.currentProblem,
+            hint: this.problemHint,
+            isGood: !this.currentProblem,
+            encourage: encourage,
+            count: this.jumpCount
+        };
     }
 
     /**
