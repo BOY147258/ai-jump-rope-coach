@@ -88,6 +88,7 @@
                             <div class="progress-fill-thin" id="progress-fill-thin"></div>
                         </div>
                     </div>
+                    <button id="stop-test-btn" class="stop-btn">✕</button>
                 </div>
 
                 <!-- 主显示区：镜像视频+骨架 -->
@@ -105,14 +106,28 @@
                     <div class="action-indicator" id="action-indicator">
                         <span class="action-icon">⬆️</span>
                     </div>
+
+                    <!-- 问题区域高亮指示 -->
+                    <div class="problem-zone-indicator" id="problem-zone-indicator">
+                        <div class="zone-highlight zone-arm" id="zone-arm"></div>
+                        <div class="zone-highlight zone-leg" id="zone-leg"></div>
+                    </div>
                 </div>
 
                 <!-- 底部数据区 -->
                 <div class="test-bottom-area">
-                    <!-- 大数字计数 -->
-                    <div class="big-count-display">
-                        <span class="big-count" id="big-count">0</span>
-                        <span class="big-count-label">次</span>
+                    <!-- 大数字计数 + 节奏环 -->
+                    <div class="big-count-wrapper">
+                        <div class="tempo-ring" id="tempo-ring">
+                            <svg viewBox="0 0 120 120">
+                                <circle cx="60" cy="60" r="55" class="tempo-ring-bg"/>
+                                <circle id="tempo-ring-fill" cx="60" cy="60" r="55" class="tempo-ring-fill"/>
+                            </svg>
+                        </div>
+                        <div class="big-count-display">
+                            <span class="big-count" id="big-count">0</span>
+                            <span class="big-count-label">次</span>
+                        </div>
                     </div>
 
                     <!-- 实时指标 -->
@@ -146,6 +161,9 @@
                             <span>节奏不稳</span>
                         </div>
                     </div>
+
+                    <!-- 鼓励文字 -->
+                    <div class="encourage-text" id="encourage-text"></div>
                 </div>
             </section>
 
